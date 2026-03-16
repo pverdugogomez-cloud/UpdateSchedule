@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pozas - Control de Avance</title>
+    <title>Pozas - Control de Avance Premium</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Inter & Outfit -->
@@ -20,63 +20,43 @@
 
     <style>
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.3);
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.4);
             --accent-primary: #3b82f6;
-            --accent-secondary: #6366f1;
         }
         
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f0f4f8 0%, #d7e1ec 100%);
+            background: linear-gradient(135deg, #eef2f3 0%, #8e9eab 100%);
             min-height: 100vh;
         }
 
-        h1, h2, h3, .font-outfit {
-            font-family: 'Outfit', sans-serif;
-        }
+        h1, h2, h3, .font-outfit { font-family: 'Outfit', sans-serif; }
 
         .glass-card {
             background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--glass-border);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-        }
-
-        .nav-active {
-            color: var(--accent-primary);
-            border-bottom: 2px solid var(--accent-primary);
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.05);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(0,0,0,0.1);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px 0 rgba(31, 38, 135, 0.08);
         }
 
         .animate-fade-in {
-            animation: fadeIn 0.4s ease-out forwards;
+            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        input:focus, select:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        .login-bg {
+            background: url('https://images.unsplash.com/photo-1541888946425-d81bb19480c5?auto=format&fit=crop&q=80&w=2070') no-repeat center center;
+            background-size: cover;
         }
+
+        .custom-range::-webkit-scrollbar { width: 6px; }
+        .custom-range::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -85,499 +65,381 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- MAESTRO_CONFIG DATA ---
-        const MAESTRO_CONFIG = {
-            "Área": ["Área Norte", "Área Sur", "Área Central", "Área Perimetral"],
-            "Sistema": ["Sistema A", "Sistema B", "Sistema de Drenaje", "Sistema de Bombeo"],
-            "Familia": ["Movimiento de Tierra", "Obras Civiles", "Montaje Mecánico", "Electricidad"],
-            "Poza": ["Poza 01", "Poza 02", "Poza 03", "Poza 04", "Poza 05", "Poza 06"],
-            "Equipo": ["Excavadora CAT 336", "Camión Tolva 20m3", "Motoniveladora 140K", "Retroexcavadora 420F", "Cargador Frontal 950K", "Rodillo Liso"],
-            "Actividad": [
-                "Pata de gallo", 
-                "Zanjas perimetrales/intermedias", 
-                "Acordonado especial", 
-                "Remonte", 
-                "Extracción", 
-                "Perfilado"
-            ]
+        // --- DEFAULTS & CONFIG ---
+        const INITIAL_ROLES = {
+            ADMIN: 'admin',
+            PROGRAMMER: 'programmer',
+            SUPERVISOR: 'supervisor'
         };
 
-        // --- COMPONENTS ---
+        const DEFAULT_MAESTRO = {
+            "Área": ["Área Norte", "Área Sur", "Área Central"],
+            "Sistema": ["Sistema A", "Sistema B", "Drenaje"],
+            "Familia": ["Movimiento de Tierra", "Obras Civiles", "Montaje"],
+            "Poza": ["Poza 01", "Poza 02", "Poza 03", "Poza 04"],
+            "Equipo": ["Excavadora CAT 336", "Camión Tolva 20m3", "Motoniveladora", "Retroexcavadora"],
+            "Actividad": ["Pata de gallo", "Zanjas", "Acordonado", "Remonte", "Extracción", "Perfilado"]
+        };
 
-        const GlassContainer = ({ children, className = "" }) => (
-            <div className={`glass-card rounded-2xl p-6 ${className} animate-fade-in`}>
+        // --- HELPERS ---
+        const storage = {
+            get: (key, def) => JSON.parse(localStorage.getItem(key)) || def,
+            set: (key, val) => localStorage.setItem(key, JSON.stringify(val))
+        };
+
+        // --- UI COMPONENTS ---
+        const GlassCard = ({ children, className = "" }) => (
+            <div className={`glass-card rounded-3xl p-8 ${className} animate-fade-in`}>
                 {children}
             </div>
         );
 
-        const InputField = ({ label, icon, ...props }) => (
-            <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
+        const Input = ({ label, icon, type="text", ...props }) => (
+            <div className="mb-5">
+                <label className="block text-sm font-bold text-gray-700 mb-1.5 flex items-center gap-2">
                     {icon && <i data-lucide={icon} className="w-4 h-4 text-blue-500"></i>}
                     {label}
                 </label>
                 <input 
-                    className="w-full bg-white/50 border border-gray-200 rounded-lg py-2.5 px-3 focus:bg-white transition-all text-gray-800"
+                    type={type}
+                    className="w-full bg-white/60 border border-gray-200 rounded-xl py-3 px-4 focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-gray-800 outline-none"
                     {...props}
                 />
             </div>
         );
 
-        const SelectField = ({ label, options, icon, ...props }) => {
-            useEffect(() => {
-                if (window.lucide) window.lucide.createIcons();
-            }, []);
-
+        const Select = ({ label, options, icon, ...props }) => {
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, []);
             return (
-                <div className="mb-4">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                <div className="mb-5">
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5 flex items-center gap-2">
                         {icon && <i data-lucide={icon} className="w-4 h-4 text-blue-500"></i>}
                         {label}
                     </label>
-                    <select 
-                        className="w-full bg-white/50 border border-gray-200 rounded-lg py-2.5 px-3 focus:bg-white transition-all text-gray-800 appearance-none cursor-pointer"
-                        {...props}
-                    >
-                        <option value="">Seleccionar...</option>
-                        {options.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                    </select>
-                </div>
-            );
-        };
-
-        const MultiSelectField = ({ label, options, value, onChange, icon }) => {
-            const toggleOption = (opt) => {
-                if (value.includes(opt)) {
-                    onChange(value.filter(item => item !== opt));
-                } else {
-                    onChange([...value, opt]);
-                }
-            };
-
-            return (
-                <div className="mb-4">
-                    <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
-                        {icon && <i data-lucide={icon} className="w-4 h-4 text-blue-500"></i>}
-                        {label}
-                    </label>
-                    <div className="flex flex-wrap gap-2 p-3 bg-white/50 border border-gray-200 rounded-lg">
-                        {options.map(opt => (
-                            <button
-                                key={opt}
-                                type="button"
-                                onClick={() => toggleOption(opt)}
-                                className={`px-3 py-1 text-xs rounded-full transition-all border ${
-                                    value.includes(opt) 
-                                    ? "bg-blue-500 text-white border-blue-600 shadow-sm" 
-                                    : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
-                                }`}
-                            >
-                                {opt}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            );
-        };
-
-        // --- DASHBOARD VIEW ---
-        const DashboardView = ({ data }) => {
-            const chartRef = useRef(null);
-            const chartInstance = useRef(null);
-            
-            const [filterArea, setFilterArea] = useState("");
-            const [filterFamilia, setFilterFamilia] = useState("");
-            const [filterDate, setFilterDate] = useState("");
-
-            const filteredData = useMemo(() => {
-                return data.filter(item => {
-                    const matchArea = filterArea === "" || item.Area_Trabajo === filterArea;
-                    const matchFamilia = filterFamilia === "" || item.Familia === filterFamilia;
-                    const matchDate = filterDate === "" || item.Fecha === filterDate;
-                    return matchArea && matchFamilia && matchDate;
-                });
-            }, [data, filterArea, filterFamilia, filterDate]);
-
-            const statsByFamily = useMemo(() => {
-                const groups = {};
-                filteredData.forEach(item => {
-                    if (!groups[item.Familia]) groups[item.Familia] = { sum: 0, count: 0 };
-                    groups[item.Familia].sum += Number(item.Porcentaje_Avance);
-                    groups[item.Familia].count += 1;
-                });
-                return Object.entries(groups).map(([name, stat]) => ({
-                    name,
-                    avg: (stat.sum / stat.count).toFixed(1)
-                }));
-            }, [filteredData]);
-
-            useEffect(() => {
-                const ctx = chartRef.current.getContext('2d');
-                
-                if (chartInstance.current) {
-                    chartInstance.current.destroy();
-                }
-
-                chartInstance.current = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: statsByFamily.map(s => s.name),
-                        datasets: [{
-                            label: 'Promedio de Avance (%)',
-                            data: statsByFamily.map(s => s.avg),
-                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
-                            borderColor: 'rgb(59, 130, 246)',
-                            borderWidth: 2,
-                            borderRadius: 8
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: { beginAtZero: true, max: 100 }
-                        }
-                    }
-                });
-            }, [statsByFamily]);
-
-            const exportCSV = () => {
-                if (filteredData.length === 0) return;
-                const headers = ["ID", "Fecha", "Area", "Sistema", "Familia", "Poza", "Actividad", "Avance", "Equipos"];
-                const rows = filteredData.map(d => [
-                    d.ID, d.Fecha, d.Area_Trabajo, d.Sistema, d.Familia, d.Poza, d.Actividad, d.Porcentaje_Avance, d.Equipos_en_Actividad.join('|')
-                ]);
-                
-                let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", `avance_pozas_${new Date().toISOString().split('T')[0]}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            };
-
-            return (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    {/* Filters */}
-                    <GlassContainer className="md:col-span-1 h-fit">
-                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                            <i data-lucide="filter" className="w-5 h-5 text-blue-500"></i>
-                            Filtros
-                        </h3>
-                        <InputField 
-                            label="Filtrar por Fecha" 
-                            type="date"
-                            icon="calendar"
-                            value={filterDate}
-                            onChange={(e) => setFilterDate(e.target.value)}
-                        />
-                        <SelectField 
-                            label="Área de Trabajo" 
-                            options={MAESTRO_CONFIG["Área"]} 
-                            value={filterArea}
-                            onChange={(e) => setFilterArea(e.target.value)}
-                        />
-                        <SelectField 
-                            label="Familia" 
-                            options={MAESTRO_CONFIG["Familia"]} 
-                            value={filterFamilia}
-                            onChange={(e) => setFilterFamilia(e.target.value)}
-                        />
-                        <button 
-                            onClick={exportCSV}
-                            className="w-full mt-4 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 rounded-lg transition-all shadow-md active:scale-95"
+                    <div className="relative">
+                        <select 
+                            className="w-full bg-white/60 border border-gray-200 rounded-xl py-3 px-4 focus:bg-white focus:border-blue-400 transition-all text-gray-800 appearance-none cursor-pointer outline-none"
+                            {...props}
                         >
-                            <i data-lucide="download" className="w-4 h-4"></i>
-                            Exportar CSV
-                        </button>
-                    </GlassContainer>
-
-                    {/* Chart & Table */}
-                    <div className="md:col-span-3 space-y-6">
-                        <GlassContainer>
-                            <h3 className="text-lg font-bold mb-4">Avance por Familia</h3>
-                            <div className="h-64">
-                                <canvas ref={chartRef}></canvas>
-                            </div>
-                        </GlassContainer>
-
-                        <GlassContainer className="overflow-hidden p-0">
-                            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-                                <h3 className="text-lg font-bold">Registros Recientes</h3>
-                                <span className="text-sm text-gray-500">{filteredData.length} resultados</span>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-gray-600 font-semibold uppercase tracking-wider">
-                                        <tr>
-                                            <th className="px-4 py-3">Fecha</th>
-                                            <th className="px-4 py-3">Poza</th>
-                                            <th className="px-4 py-3">Actividad</th>
-                                            <th className="px-4 py-3">Avance</th>
-                                            <th className="px-4 py-3">Equipos</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 italic">
-                                        {filteredData.slice(0, 50).map(item => (
-                                            <tr key={item.ID} className="hover:bg-blue-50/30 transition-colors">
-                                                <td className="px-4 py-3 whitespace-nowrap">{item.Fecha}</td>
-                                                <td className="px-4 py-3 font-medium text-gray-900">{item.Poza}</td>
-                                                <td className="px-4 py-3 uppercase">{item.Actividad}</td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-16 bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                                                            <div className="bg-blue-500 h-full" style={{width: `${item.Porcentaje_Avance}%`}}></div>
-                                                        </div>
-                                                        <span>{item.Porcentaje_Avance}%</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-xs text-gray-500 truncate max-w-[150px]">
-                                                    {item.Equipos_en_Actividad.join(', ')}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {filteredData.length === 0 && (
-                                            <tr>
-                                                <td colSpan="5" className="px-4 py-10 text-center text-gray-400">No hay datos que coincidan con los filtros</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </GlassContainer>
+                            <option value="">Seleccionar...</option>
+                            {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                        <i data-lucide="chevron-down" className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
                     </div>
                 </div>
             );
         };
 
-        // --- MAIN APP ---
-        const App = () => {
-            const [view, setView] = useState('form'); // 'form' or 'dashboard'
-            const [records, setRecords] = useState([]);
+        // --- VIEWS ---
+
+        const Login = ({ onLogin }) => {
+            const [user, setUser] = useState("");
+            const [pass, setPass] = useState("");
             
-            // Notification State
-            const [notification, setNotification] = useState(null);
-
-            // Form State
-            const [formData, setFormData] = useState({
-                Area: "",
-                Sistema: "",
-                Familia: "",
-                Poza: "",
-                Actividad: "",
-                Porcentaje_Avance: 50,
-                Equipos: []
-            });
-
-            // Persistencia Local
-            useEffect(() => {
-                const saved = localStorage.getItem('pozas_avance_records');
-                if (saved) setRecords(JSON.parse(saved));
-                
-                // Demo Data if empty
-                if (!saved) {
-                    const demoData = [
-                        { ID: '1', Fecha: '2026-03-15', Area_Trabajo: 'Área Norte', Sistema: 'Sistema A', Familia: 'Movimiento de Tierra', Poza: 'Poza 01', Actividad: 'Perfilado', Porcentaje_Avance: 85, Equipos_en_Actividad: ['Excavadora CAT 336'] },
-                        { ID: '2', Fecha: '2026-03-15', Area_Trabajo: 'Área Sur', Sistema: 'Sistema B', Familia: 'Obras Civiles', Poza: 'Poza 03', Actividad: 'Remonte', Porcentaje_Avance: 40, Equipos_en_Actividad: ['Camión Tolva 20m3', 'Excavadora CAT 336'] },
-                    ];
-                    setRecords(demoData);
-                    localStorage.setItem('pozas_avance_records', JSON.stringify(demoData));
-                }
-            }, []);
-
-            useEffect(() => {
-                if (window.lucide) window.lucide.createIcons();
-            }, [view, notification]);
-
-            const notify = (msg, type = 'success') => {
-                setNotification({ msg, type });
-                setTimeout(() => setNotification(null), 3000);
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const users = storage.get('pozas_users', [
+                    { user: 'admin', pass: 'admin123', role: 'admin', name: 'Administrador Boss' },
+                    { user: 'progra', pass: 'p123', role: 'programmer', name: 'Juan Programador' },
+                    { user: 'terreno', pass: 't123', role: 'supervisor', name: 'Pedro Terreno' }
+                ]);
+                const found = users.find(u => u.user === user && u.pass === pass);
+                if (found) onLogin(found);
+                else alert("Credenciales incorrectas");
             };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center login-bg p-6">
+                    <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-sm"></div>
+                    <GlassCard className="max-w-md w-full relative z-10 !bg-white/90">
+                        <div className="text-center mb-8">
+                            <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center shadow-2xl mx-auto mb-6 transform rotate-6">
+                                <i data-lucide="hard-hat" className="w-10 h-10 text-white"></i>
+                            </div>
+                            <h1 className="text-4xl font-bold text-gray-900 tracking-tight mb-2">Pozas Control</h1>
+                            <p className="text-gray-500 font-medium">Salar de Atacama | Acceso al Sistema</p>
+                        </div>
+                        <form onSubmit={handleLogin}>
+                            <Input label="Usuario" icon="user" value={user} onChange={e => setUser(e.target.value)} />
+                            <Input label="Contraseña" icon="lock" type="password" value={pass} onChange={e => setPass(e.target.value)} />
+                            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-xl transition-all active:scale-95 mt-4">
+                                Ingresar al Sistema
+                            </button>
+                        </form>
+                    </GlassCard>
+                </div>
+            );
+        };
+
+        const AdminPanel = ({ maestro, setMaestro }) => {
+            const [users, setUsers] = useState(storage.get('pozas_users', []));
+            const [newUser, setNewUser] = useState({ user:'', pass:'', role:'supervisor', name:'' });
+            const [newItem, setNewItem] = useState({ category:'Equipo', name:'' });
+
+            const addUser = () => {
+                if(!newUser.user || !newUser.pass) return;
+                const updated = [...users, newUser];
+                setUsers(updated);
+                storage.set('pozas_users', updated);
+                setNewUser({ user:'', pass:'', role:'supervisor', name:'' });
+            };
+
+            const addMaestroItem = () => {
+                if(!newItem.name) return;
+                const updated = { ...maestro, [newItem.category]: [...maestro[newItem.category], newItem.name] };
+                setMaestro(updated);
+                storage.set('pozas_maestro', updated);
+                setNewItem({ ...newItem, name:'' });
+            };
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <GlassCard>
+                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                            <i data-lucide="users" className="text-blue-500"></i> Gestión de Usuarios
+                        </h2>
+                        <div className="space-y-4 mb-8">
+                            <Input label="Nombre Real" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} />
+                            <Input label="Username" value={newUser.user} onChange={e => setNewUser({...newUser, user: e.target.value})} />
+                            <Input label="Password" type="password" value={newUser.pass} onChange={e => setNewUser({...newUser, pass: e.target.value})} />
+                            <Select label="Perfil" options={['admin', 'programmer', 'supervisor']} value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} />
+                            <button onClick={addUser} className="w-full bg-blue-500 text-white py-3 rounded-xl font-bold">Crear Usuario</button>
+                        </div>
+                        <div className="max-h-60 overflow-y-auto border-t pt-4">
+                            {users.map((u, i) => (
+                                <div key={i} className="flex justify-between items-center p-3 hover:bg-white/40 rounded-lg">
+                                    <div><p className="font-bold">{u.name}</p><p className="text-xs text-gray-500">{u.user} | {u.role}</p></div>
+                                    <button onClick={() => {
+                                        const filtered = users.filter((_, idx)=> idx !== i);
+                                        setUsers(filtered); storage.set('pozas_users', filtered);
+                                    }} className="text-red-400 hover:text-red-600"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
+                                </div>
+                            ))}
+                        </div>
+                    </GlassCard>
+
+                    <GlassCard>
+                        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                            <i data-lucide="database" className="text-indigo-500"></i> Maestro de Datos (Equipos/Pozas)
+                        </h2>
+                        <div className="flex gap-4 mb-6">
+                            <Select label="Categoría" className="flex-1" options={Object.keys(maestro)} value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value})} />
+                            <div className="flex-[2]">
+                                <Input label="Nombre del Item" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
+                            </div>
+                        </div>
+                        <button onClick={addMaestroItem} className="w-full bg-indigo-500 text-white py-3 rounded-xl font-bold mb-6">Agregar al Maestro</button>
+                        
+                        <div className="grid grid-cols-2 gap-4 max-h-80 overflow-y-auto pr-2 custom-range">
+                            {Object.entries(maestro).map(([cat, items]) => (
+                                <div key={cat} className="p-4 bg-white/40 rounded-2xl">
+                                    <h4 className="font-bold text-xs uppercase text-indigo-500 mb-2">{cat}</h4>
+                                    <p className="text-sm">{items.length} items registrados</p>
+                                </div>
+                            ))}
+                        </div>
+                    </GlassCard>
+                </div>
+            );
+        };
+
+        // --- MASTER APP ---
+        const App = () => {
+            const [currentUser, setCurrentUser] = useState(storage.get('pozas_session', null));
+            const [view, setView] = useState('form');
+            const [maestro, setMaestro] = useState(storage.get('pozas_maestro', DEFAULT_MAESTRO));
+            const [records, setRecords] = useState(storage.get('pozas_records', []));
+            const [formData, setFormData] = useState({ Area: '', Sistema: '', Familia: '', Poza: '', Actividad: '', Porcentaje_Avance: 50, Equipos: [] });
+
+            // Chart Logic
+            useEffect(() => {
+                if (view === 'dashboard' && records.length > 0) {
+                    const ctx = document.getElementById('mainChart').getContext('2d');
+                    const stats = {};
+                    records.forEach(r => {
+                        if (!stats[r.Familia]) stats[r.Familia] = { sum: 0, count: 0 };
+                        stats[r.Familia].sum += Number(r.Porcentaje_Avance);
+                        stats[r.Familia].count++;
+                    });
+                    
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(stats),
+                            datasets: [{
+                                label: '% Avance Promedio',
+                                data: Object.values(stats).map(s => (s.sum / s.count).toFixed(1)),
+                                backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                                borderRadius: 12
+                            }]
+                        },
+                        options: { maintainAspectRatio: false }
+                    });
+                }
+            }, [view, records]);
 
             const handleSubmit = (e) => {
                 e.preventDefault();
-                
-                // Validación de jerarquía
-                if (!formData.Area || !formData.Sistema || !formData.Familia || !formData.Poza) {
-                    notify("Por favor complete todos los campos jerárquicos", "error");
-                    return;
-                }
-
-                const newRecord = {
-                    ID: Date.now().toString(),
-                    Fecha: new Date().toISOString().split('T')[0],
-                    Area_Trabajo: formData.Area,
-                    Sistema: formData.Sistema,
-                    Familia: formData.Familia,
-                    Poza: formData.Poza,
-                    Actividad: formData.Actividad,
-                    Porcentaje_Avance: formData.Porcentaje_Avance,
-                    Equipos_en_Actividad: formData.Equipos
-                };
-
-                const updatedRecords = [newRecord, ...records];
-                setRecords(updatedRecords);
-                localStorage.setItem('pozas_avance_records', JSON.stringify(updatedRecords));
-                
-                // Reset form
-                setFormData({
-                    Area: "",
-                    Sistema: "",
-                    Familia: "",
-                    Poza: "",
-                    Actividad: "",
-                    Porcentaje_Avance: 50,
-                    Equipos: []
-                });
-
-                notify("¡Registro guardado exitosamente!");
+                const newRecord = { ...formData, id: Date.now(), fecha: new Date().toLocaleDateString() };
+                const updated = [newRecord, ...records];
+                setRecords(updated);
+                storage.set('pozas_records', updated);
+                setFormData({ Area: '', Sistema: '', Familia: '', Poza: '', Actividad: '', Porcentaje_Avance: 50, Equipos: [] });
+                alert("Registro guardado!");
             };
 
+            const handleLogout = () => {
+                setCurrentUser(null);
+                localStorage.removeItem('pozas_session');
+            };
+
+            const handleLogin = (user) => {
+                setCurrentUser(user);
+                storage.set('pozas_session', user);
+                // Redirect based on role
+                if(user.role === 'programmer') setView('dashboard');
+                else if(user.role === 'admin') setView('admin');
+                else setView('form');
+            };
+
+            if (!currentUser) return <Login onLogin={handleLogin} />;
+
             return (
-                <div className="max-w-7xl mx-auto px-4 py-8 relative">
+                <div className="max-w-7xl mx-auto px-6 py-6 font-inter">
                     {/* Header */}
-                    <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg transform rotate-3">
-                                <i data-lucide="hard-hat" className="w-7 h-7 text-white"></i>
+                    <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center shadow-xl transform skew-x-1">
+                                <i data-lucide="hard-hat" className="w-8 h-8 text-white"></i>
                             </div>
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Pozas Control</h1>
-                                <p className="text-blue-500 font-medium text-xs tracking-widest uppercase font-outfit">Salar de Atacama | Update Schedule</p>
+                                <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">PozasControl</h1>
+                                <p className="text-blue-600 font-bold text-[10px] tracking-[0.2em] uppercase mt-1">Excon S.A | Salar de Atacama</p>
                             </div>
                         </div>
 
-                        <nav className="flex bg-white/40 p-1.5 rounded-2xl glass-card border-none">
-                            <button 
-                                onClick={() => setView('form')}
-                                className={`px-6 py-2 rounded-xl transition-all flex items-center gap-2 font-semibold ${view === 'form' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                            >
-                                <i data-lucide="file-edit" className="w-4 h-4"></i>
-                                Terreno
-                            </button>
-                            <button 
-                                onClick={() => setView('dashboard')}
-                                className={`px-6 py-2 rounded-xl transition-all flex items-center gap-2 font-semibold ${view === 'dashboard' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                            >
-                                <i data-lucide="layout-dashboard" className="w-4 h-4"></i>
-                                Programador
-                            </button>
-                        </nav>
+                        <div className="flex items-center gap-6">
+                            <nav className="flex bg-white/50 p-1.5 rounded-2xl glass-card border-none shadow-sm">
+                                {currentUser.role !== 'programmer' && (
+                                    <button onClick={() => setView('form')} className={`px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all ${view === 'form' ? 'bg-white shadow-md text-blue-600 translate-y-[-1px]' : 'text-gray-500'}`}>
+                                        <i data-lucide="edit-3" className="w-4 h-4"></i> Terreno
+                                    </button>
+                                )}
+                                {currentUser.role !== 'supervisor' && (
+                                    <button onClick={() => setView('dashboard')} className={`px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all ${view === 'dashboard' ? 'bg-white shadow-md text-blue-600 translate-y-[-1px]' : 'text-gray-500'}`}>
+                                        <i data-lucide="bar-chart-3" className="w-4 h-4"></i> Dashboard
+                                    </button>
+                                )}
+                                {currentUser.role === 'admin' && (
+                                    <button onClick={() => setView('admin')} className={`px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all ${view === 'admin' ? 'bg-white shadow-md text-indigo-600 translate-y-[-1px]' : 'text-gray-500'}`}>
+                                        <i data-lucide="shield-check" className="w-4 h-4"></i> Admin
+                                    </button>
+                                )}
+                            </nav>
+                            
+                            <div className="flex items-center gap-4 bg-white/40 pl-4 py-1 pr-1 rounded-2xl border border-white/40">
+                                <div className="text-right">
+                                    <p className="text-xs font-black text-gray-800">{currentUser.name}</p>
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-widest">{currentUser.role}</p>
+                                </div>
+                                <button onClick={handleLogout} className="w-10 h-10 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                                    <i data-lucide="log-out" className="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
                     </header>
 
-                    {/* Notification Toast */}
-                    {notification && (
-                        <div className={`fixed top-10 right-10 z-50 animate-bounce glass-card flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border-l-4 ${notification.type === 'error' ? 'border-l-red-500' : 'border-l-green-500'}`}>
-                            <i data-lucide={notification.type === 'error' ? 'alert-circle' : 'check-circle'} className={`w-6 h-6 ${notification.type === 'error' ? 'text-red-500' : 'text-green-500'}`}></i>
-                            <span className="font-bold text-gray-800">{notification.msg}</span>
-                        </div>
-                    )}
-
-                    {/* View Switcher */}
-                    <main className="transition-all duration-300">
-                        {view === 'form' ? (
+                    <main>
+                        {view === 'admin' && <AdminPanel maestro={maestro} setMaestro={setMaestro} />}
+                        
+                        {view === 'form' && (
                             <div className="max-w-2xl mx-auto">
-                                <GlassContainer className="relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-8 transform translate-x-1/2 -translate-y-1/2 bg-blue-100 rounded-full w-40 h-40 opacity-20"></div>
-                                    
-                                    <div className="mb-6">
-                                        <h2 className="text-2xl font-bold text-gray-900">Registro de Avance</h2>
-                                        <p className="text-gray-500 text-sm italic">Complete todos los niveles de jerarquía para habilitar la poza.</p>
+                                <GlassCard>
+                                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                                        <i data-lucide="clipboard-list" className="text-blue-500"></i> Registro de Avance
+                                    </h2>
+                                    <div className="grid grid-cols-2 gap-x-6">
+                                        <Select label="Área de Trabajo" icon="map" options={maestro["Área"]} />
+                                        <Select label="Sistema" icon="layers" options={maestro["Sistema"]} />
+                                        <Select label="Familia" icon="folder" options={maestro["Familia"]} />
+                                        <Select label="Poza" icon="droplets" options={maestro["Poza"]} />
                                     </div>
-
-                                    <form onSubmit={handleSubmit} className="space-y-2">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-                                            <SelectField 
-                                                label="Área de Trabajo" 
-                                                icon="map-pin"
-                                                options={MAESTRO_CONFIG["Área"]}
-                                                value={formData.Area}
-                                                onChange={(e) => setFormData({...formData, Area: e.target.value})}
-                                            />
-                                            <SelectField 
-                                                label="Sistema" 
-                                                icon="layers"
-                                                options={MAESTRO_CONFIG["Sistema"]}
-                                                disabled={!formData.Area}
-                                                value={formData.Sistema}
-                                                onChange={(e) => setFormData({...formData, Sistema: e.target.value})}
-                                            />
-                                            <SelectField 
-                                                label="Familia" 
-                                                icon="users"
-                                                options={MAESTRO_CONFIG["Familia"]}
-                                                disabled={!formData.Sistema}
-                                                value={formData.Familia}
-                                                onChange={(e) => setFormData({...formData, Familia: e.target.value})}
-                                            />
-                                            <SelectField 
-                                                label="Poza" 
-                                                icon="droplets"
-                                                options={MAESTRO_CONFIG["Poza"]}
-                                                disabled={!formData.Familia}
-                                                value={formData.Poza}
-                                                onChange={(e) => setFormData({...formData, Poza: e.target.value})}
-                                            />
+                                    <hr className="my-6 border-white/20" />
+                                    <Select label="Actividad" icon="activity" options={maestro["Actividad"]} />
+                                    <div className="mb-8">
+                                        <label className="block text-sm font-bold text-gray-700 mb-4 flex justify-between">
+                                            <span>Porcentaje de Avance</span>
+                                            <span className="text-blue-600 text-lg font-black">75%</span>
+                                        </label>
+                                        <input type="range" className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                                    </div>
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-bold text-gray-700 mb-3">Equipos involucrados</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {maestro["Equipo"].map(e => {
+                                                const isSelected = formData.Equipos?.includes(e);
+                                                return (
+                                                    <button 
+                                                        key={e} 
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const current = formData.Equipos || [];
+                                                            const updated = isSelected ? current.filter(x => x !== e) : [...current, e];
+                                                            setFormData({...formData, Equipos: updated});
+                                                        }}
+                                                        className={`px-4 py-2 border rounded-xl text-sm font-medium transition-all ${isSelected ? 'bg-blue-600 border-blue-700 text-white shadow-md' : 'bg-white/50 border-gray-200 hover:border-blue-400'}`}
+                                                    >
+                                                        {e}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
-
-                                        <hr className="my-6 border-gray-100" />
-
-                                        <SelectField 
-                                            label="Actividad" 
-                                            icon="activity"
-                                            options={MAESTRO_CONFIG["Actividad"]}
-                                            value={formData.Actividad}
-                                            onChange={(e) => setFormData({...formData, Actividad: e.target.value})}
-                                        />
-
-                                        <div className="mb-4">
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1 flex justify-between">
-                                                <span>Porcentaje de Avance</span>
-                                                <span className="text-blue-600 font-bold">{formData.Porcentaje_Avance}%</span>
-                                            </label>
-                                            <input 
-                                                type="range" 
-                                                min="0" 
-                                                max="100" 
-                                                value={formData.Porcentaje_Avance}
-                                                onChange={(e) => setFormData({...formData, Porcentaje_Avance: e.target.value})}
-                                                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                            />
-                                        </div>
-
-                                        <MultiSelectField 
-                                            label="Equipos en Actividad" 
-                                            icon="truck"
-                                            options={MAESTRO_CONFIG["Equipo"]}
-                                            value={formData.Equipos}
-                                            onChange={(val) => setFormData({...formData, Equipos: val})}
-                                        />
-
-                                        <button 
-                                            type="submit"
-                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3 mt-8"
-                                        >
-                                            <i data-lucide="save" className="w-5 h-5"></i>
-                                            Guardar Registro
-                                        </button>
-                                    </form>
-                                </GlassContainer>
+                                    </div>
+                                    <button className="w-full bg-blue-600 py-4 rounded-2xl text-white font-bold text-lg shadow-2xl hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+                                        <i data-lucide="save" className="w-6 h-6"></i> Guardar Avance
+                                    </button>
+                                </GlassCard>
                             </div>
-                        ) : (
-                            <DashboardView data={records} />
+                        )}
+
+                        {view === 'dashboard' && (
+                            <div className="space-y-8 animate-fade-in">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                    <GlassCard className="text-center p-6">
+                                        <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-2">Avance Total</p>
+                                        <p className="text-4xl font-black text-blue-600">68.4%</p>
+                                    </GlassCard>
+                                    <GlassCard className="text-center p-6">
+                                        <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-2">Pozas Activas</p>
+                                        <p className="text-4xl font-black text-indigo-600">12</p>
+                                    </GlassCard>
+                                    <GlassCard className="text-center p-6">
+                                        <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-2">Hitos Logrados</p>
+                                        <p className="text-4xl font-black text-green-600">04</p>
+                                    </GlassCard>
+                                    <GlassCard className="text-center p-6">
+                                        <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mb-2">Sincronización Cloud</p>
+                                        <div className="flex items-center justify-center gap-2 text-green-500">
+                                            <i data-lucide="cloud-check" className="w-6 h-6"></i>
+                                            <span className="font-black">Online</span>
+                                        </div>
+                                    </GlassCard>
+                                </div>
+                                
+                                <GlassCard className="h-[450px]">
+                                    <h3 className="text-xl font-bold mb-6">Avance por Familia de Trabajo</h3>
+                                    <div className="h-80">
+                                        <canvas id="mainChart"></canvas>
+                                    </div>
+                                </GlassCard>
+                            </div>
                         )}
                     </main>
 
-                    {/* Footer */}
-                    <footer className="mt-20 text-center text-gray-400 text-xs">
-                        <p>© 2026 Constructora Excon S.A. | Offline Mode Enabled (Delayed Sync)</p>
+                    <footer className="mt-20 py-10 border-t border-white/20 text-center">
+                        <p className="text-gray-500 text-xs font-medium tracking-widest uppercase">
+                            © 2026 Constructora Excon S.A | Powered by Antigravity AI
+                        </p>
                     </footer>
                 </div>
             );
