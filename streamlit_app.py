@@ -17,7 +17,7 @@ st.markdown("<h1 style='display:none;'>Pozas Control</h1>", unsafe_allow_html=Tr
 # Si el usuario configura secrets, se activa la carga real
 def load_data_from_gsheets():
     try:
-        from streamlit_gsheets import GSheetsConnection
+        from st_gsheets_connection import GSheetsConnection
         conn = st.connection("gsheets", type=GSheetsConnection)
         # Aquí se leería el Maestro de Datos
         # df = conn.read(worksheet="MAESTRO_CONFIG")
