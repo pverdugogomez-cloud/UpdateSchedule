@@ -101,12 +101,14 @@
         // --- CONSTANTS ---
         const ROLE_ACTIVITIES = {
             admin: ["Pata de gallo", "Zanjas perimetrales", "Zanjas intermedias", "Acordonado", "Remonte", "Extracción", "Perfilado"],
-            programmer: ["Auditoría de Datos", "Revisión de Metas", "Ajuste de Calendario"],
+            programmer: ["Pata de gallo", "Zanjas perimetrales", "Zanjas intermedias", "Acordonado", "Remonte", "Extracción", "Perfilado", "Auditoría de Datos", "Revisión de Metas", "Ajuste de Calendario"],
             supervisor: ["Pata de gallo", "Zanjas perimetrales", "Zanjas intermedias", "Acordonado", "Remonte", "Extracción", "Perfilado"]
         };
 
         const INITIAL_PONDS = ['1-A', '1-B', '1-C', '1-D', '10-A', '10-B', '10-C', '10-D', '10-E', '10-F', '10-G', '10-H', '10-I', '10-J', '10-K', '11-A', '11-B', '11-C', '11-D', '11-E', '11-F', '11-G', '11-I', '11H-A', '11H-B', '11J-B', '11K-A', '11K-B', '2-A', '2-B', '2-C', '2-D', '3-A', '3-B', '3-C', '3-D', '4-A', '4-B', '4-C', '4-D', '4F-A', '4F-B', '4G-A', '4G-B', '5-A', '5-B', '5-C', '5-D', '5-F', '5-G', '6-A', '6-B', '6-C', '6-D', '6-F', '6-G', '7-A', '7-B', '7-C', '7-D', '7-F', '7-G', '7-H', '7-I', '7-J', '8-A', '8-B', '8-C', '8-D', '8-F', '8-G', '8-H', '8-I', '8-J', '9-A', '9-B', '9-C', '9-D', '9-E', '9-F', '9-G', '9-H', '9-I', 'BS-1', 'BS-2', 'BS-5', 'BS-6', 'CM-15', 'CM-25', 'CM-35', 'CM-45', 'CM-53', 'CM-54', 'CM-55', 'CM-63', 'CM-64', 'CM-65', 'CM-73', 'CM-74', 'CM-75', 'CM-83', 'CM-84', 'CM-85', 'CM-93', 'CM-94', 'CM-95', 'CS-13', 'CS-14', 'CS-15', 'CS-23', 'CS-24', 'CS-25', 'CS-33', 'CS-34', 'CS-35', 'CS-43', 'CS-44', 'CS-45', 'CS-53', 'CS-54', 'CS-55', 'CS-65', 'CS-75', 'CS-83', 'CS-84', 'CS-85', 'H-15', 'H-16', 'H-17', 'H-18', 'H-19', 'H-20', 'H-21', 'H-22', 'H-23', 'H-24', 'H-25', 'H-26', 'H-27', 'H-28', 'H-29', 'H-30', 'H-31', 'H-4', 'H-5', 'H-7', 'H-8', 'HK-1', 'HK-10', 'HK-11', 'HK-110 A', 'HK-110 B', 'HK-113 A', 'HK-113 B', 'HK-12', 'HK-13', 'HK-130 A', 'HK-130 B', 'HK-133 A', 'HK-133 B', 'HK-14', 'HK-15', 'HK-16', 'HK-2', 'HK-3', 'HK-50 A', 'HK-50 B', 'HK-53 A', 'HK-53 B', 'HK-6', 'HK-70', 'HK-73', 'HK-9', 'HK-90 A', 'HK-90 B', 'HK-93 A', 'HK-93 B', 'HM-13', 'HM-23', 'HM-43', 'K-10 B', 'K-10 D', 'K-100 A', 'K-100 B', 'K-11', 'K-117 A', 'K-117 B', 'K-12 B', 'K-12 D', 'K-120 A', 'K-120 B', 'K-13', 'K-137 A', 'K-137 B', 'K-14 B', 'K-14 D', 'K-140 A', 'K-140 B', 'K-15', 'K-16 B', 'K-16 D', 'K-17 B', 'K-17 D', 'K-18 B', 'K-18 D', 'K-19', 'K-2', 'K-20', 'K-20 B', 'K-20 D', 'K-21', 'K-22', 'K-23', 'K-24', 'K-25', 'K-26', 'K-27', 'K-28', 'K-29', 'K-3', 'K-30', 'K-31', 'K-32', 'K-33', 'K-34', 'K-35', 'K-36', 'K-37', 'K-39', 'K-4', 'K-40', 'K-40 B', 'K-40 D', 'K-41', 'K-42', 'K-42 B', 'K-42 D', 'K-43', 'K-44 B', 'K-44 D', 'K-45', 'K-46 B', 'K-46 D', 'K-47', 'K-48 B', 'K-48 D', 'K-49', 'K-5', 'K-50 B', 'K-50 D', 'K-51', 'K-52 B', 'K-52 D', 'K-53', 'K-54 B', 'K-54 D', 'K-57 A', 'K-57 B', 'K-6', 'K-60 A', 'K-60 B', 'K-7', 'K-77 A', 'K-77 B', 'K-8 B', 'K-8 D', 'K-80 A', 'K-80 B', 'K-9', 'K-97 A', 'K-97 B', 'KM-101', 'KM-102', 'KM-103', 'KM-104', 'KM-11', 'KM-11 A', 'KM-12', 'KM-12 A', 'KM-12 B', 'KM-13', 'KM-14', 'KM-21', 'KM-21 A', 'KM-22', 'KM-22 A', 'KM-22 B', 'KM-23', 'KM-24', 'KM-31', 'KM-31 A', 'KM-32', 'KM-32 A', 'KM-32 B', 'KM-33', 'KM-34', 'KM-41', 'KM-41 A', 'KM-42', 'KM-42 A', 'KM-42 B', 'KM-43', 'KM-44', 'KM-51', 'KM-52', 'KM-61', 'KM-62', 'KM-71', 'KM-72', 'KM-81', 'KM-82', 'KM-91', 'KM-92', 'KS-11', 'KS-12', 'KS-21', 'KS-22', 'KS-31', 'KS-32', 'KS-41', 'KS-42', 'KS-51', 'KS-52', 'KS-61', 'KS-62', 'KS-63', 'KS-64', 'KS-71', 'KS-72', 'KS-73', 'KS-74', 'KS-81', 'KS-82', 'PAM-1', 'PAM-2', 'PAM-3', 'PAM-4', 'PAM-5', 'PAM-6', 'PD NORTE', 'PD SUR O', 'PD SUR P', 'PDP-1', 'PDP-2', 'PDP-3', 'PDP-4', 'R-2', 'R-3', 'RAN', 'RAS', 'RBN', 'RBS', 'RCN', 'RCS', 'RDN', 'RDS', 'RM-1', 'RM-10', 'RM-11', 'RM-12', 'RM-4', 'RM-5', 'RM-6', 'RM-7', 'RM-8', 'RS-1', 'RS-16 A', 'RS-16 C', 'RS-16 N', 'RS-16 S', 'RS-2', 'RS-26', 'RS-3', 'RS-36', 'RS-4', 'RS-46', 'RS-56', 'RS-66', 'RS-76', 'RS-86', 'Reservorio P-1', 'Reservorio P-10', 'Reservorio P-2', 'Reservorio P-3', 'Reservorio P-4', 'Reservorio P-5', 'Reservorio P-6', 'Reservorio P-7', 'Reservorio P-8', 'Reservorio P-9'];
         const INITIAL_EQUIPMENT = ['CA-0297-EXC (Camión Aljibe)', 'CA-0300-EXC (Camión Aljibe)', 'CA-0304-EXC (Camión Aljibe)', 'CA-0305-EXC (Camión Aljibe)', 'CA-0307-EXC (Camión Aljibe)', 'CA-0308-EXC (Camión Aljibe)', 'CA-0309-EXC (Camión Aljibe)', 'CA-0310-EXC (Camión Aljibe)', 'CA-0318-EXC (Camión Aljibe)', 'CA-0324-EXC (Camión Aljibe)', 'CA-0326-EXC (Camión Aljibe)', 'CA-0330-EXC (Camión Aljibe)', 'CA-0331-EXC (Camión Aljibe)', 'CA-0332-EXC (Camión Aljibe)', 'CA-0333-EXC (Camión Aljibe)', 'CA-0334-EXC (Camión Aljibe)', 'CA-0335-EXC (Camión Aljibe)', 'CA-0336-EXC (Camión Aljibe)', 'CA-0337-EXC (Camión Aljibe)', 'CA-0338-EXC (Camión Aljibe)', 'CC-0292-EXC (Camión Combustible)', 'CC-0297-EXC (Camión Combustible)', 'CC-0300-EXC (Camión Combustible)', 'CC-0302-EXC (Camión Combustible)', 'CC-0309-EXC (Camión Combustible)', 'CD-0071-EXC (Camión Dumper)', 'CD-0073-EXC (Camión Dumper)', 'CD-0077-EXC (Camión Dumper)', 'CD-0082-EXC (Camión Dumper)', 'CD-0084-EXC (Camión Dumper)', 'CD-0085-EXC (Camión Dumper)', 'CD-0092-EXC (Camión Dumper)', 'CD-0093-EXC (Camión Dumper)', 'CD-0094-EXC (Camión Dumper)', 'CD-0095-EXC (Camión Dumper)', 'CD-0096-EXC (Camión Dumper)', 'CD-0097-EXC (Camión Dumper)', 'CD-0098-EXC (Camión Dumper)', 'CD-0099-EXC (Camión Dumper)', 'CD-0100-EXC (Camión Dumper)', 'CD-0101-EXC (Camión Dumper)', 'CD-0103-EXC (Camión Dumper)', 'CD-0106-EXC (Camión Dumper)', 'CF-0257-EXC (Cargador Frontal)', 'CF-0258-EXC (Cargador Frontal)', 'CF-0262-EXC (Cargador Frontal)', 'CF-0263-EXC (Cargador Frontal)', 'CF-0264-EXC (Cargador Frontal)', 'CF-0267-EXC (Cargador Frontal)', 'CF-0272-EXC (Cargador Frontal)', 'CF-0273-EXC (Cargador Frontal)', 'CF-0277-EXC (Cargador Frontal)', 'CF-0279-EXC (Cargador Frontal)', 'CF-0280-EXC (Cargador Frontal)', 'CF-0283-EXC (Cargador Frontal)', 'CF-0284-EXC (Cargador Frontal)', 'CF-0285-EXC (Cargador Frontal)', 'CF-0287-EXC (Cargador Frontal)', 'CF-0288-EXC (Cargador Frontal)', 'CF-0289-EXC (Cargador Frontal)', 'CF-0290-EXC (Cargador Frontal)', 'CF-0291-EXC (Cargador Frontal)', 'CF-0292-EXC (Cargador Frontal)', 'CF-0293-EXC (Cargador Frontal)', 'CF-0295-EXC (Cargador Frontal)', 'CF-0296-EXC (Cargador Frontal)', 'CF-0299-EXC (Cargador Frontal)', 'CF-0300-EXC (Cargador Frontal)', 'CF-0301-EXC (Cargador Frontal)', 'CF-0302-EXC (Cargador Frontal)', 'CF-0303-EXC (Cargador Frontal)', 'CF-0304-EXC (Cargador Frontal)', 'CF-0305-EXC (Cargador Frontal)', 'CF-0306-EXC (Cargador Frontal)', 'CF-0307-EXC (Cargador Frontal)', 'CF-0308-EXC (Cargador Frontal)', 'CF-0309-EXC (Cargador Frontal)', 'CF-0312-EXC (Cargador Frontal)', 'CF-0313-EXC (Cargador Frontal)', 'CF-0314-EXC (Cargador Frontal)', 'CF-0315-EXC (Cargador Frontal)', 'CF-0316-EXC (Cargador Frontal)', 'CF-0317-EXC (Cargador Frontal)', 'CF-0318-EXC (Cargador Frontal)', 'CF-0321-EXC (Cargador Frontal)', 'CF-0325-EXC (Cargador Frontal)', 'CF-0326-EXC (Cargador Frontal)', 'CL-0029-EXC (Camión Lubricador)', 'CL-0035-EXC (Camión Lubricador)', 'CL-0036-EXC (Camión Lubricador)', 'CL-0037-EXC (Camión Lubricador)', 'CP-0282-EXC (Camión Pluma)', 'CP-0290-EXC (Camión Pluma)', 'CP-0291-EXC (Camión Pluma)', 'CP-0304-EXC (Camión Pluma)', 'CR-0049-EXC (Camión Rígido)', 'CR-0050-EXC (Camión Rígido)', 'CR-0055-EXC (Camión Rígido)', 'CR-0056-EXC (Camión Rígido)', 'CR-0057-EXC (Camión Rígido)', 'CR-0058-EXC (Camión Rígido)', 'CS-0224-EXC (Camión Lubricador)', 'CS-0226-EXC (Camión Lubricador)', 'CT-0300-EXC (Camión Tolva)', 'CT-0301-EXC (Camión Tolva)', 'CT-0302-EXC (Camión Tolva)', 'CT-0303-EXC (Camión Tolva)', 'CT-0304-EXC (Camión Tolva)', 'CT-0305-EXC (Camión Tolva)', 'CT-0306-EXC (Camión Tolva)', 'CT-0335-EXC (Camión Tolva)', 'CT-0340-EXC (Camión Tolva)', 'CT-0341-EXC (Camión Tolva)', 'CT-0342-EXC (Camión Tolva)', 'CT-0356-EXC (Camión Tolva)', 'CT-0429-EXC (Camión Tolva)', 'CT-0430-EXC (Camión Tolva)', 'CT-0431-EXC (Camión Tolva)', 'EL-0001-EXC (Elevador)', 'EL-0002-EXC (Elevador)', 'EL-0003-EXC (Elevador)', 'EL-0004-EXC (Elevador)', 'EL-0005-EXC (Elevador)', 'EL-0006-EXC (Elevador)', 'EX-0112-EXC (Excavadora)', 'EX-0113-EXC (Excavadora)', 'EX-0115-EXC (Excavadora)', 'EX-0117-EXC (Excavadora)', 'EX-0118-EXC (Excavadora)', 'EX-0128-EXC (Excavadora)', 'EX-0129-EXC (Excavadora)', 'EX-0130-EXC (Excavadora)', 'EX-0134-EXC (Excavadora)', 'EX-0141-EXC (Excavadora)', 'EX-0143-EXC (Excavadora)', 'EX-0144-EXC (Excavadora)', 'EX-0146-EXC (Excavadora)', 'EX-0147-EXC (Excavadora)', 'EX-0150-EXC (Excavadora)', 'EX-0154-EXC (Excavadora)', 'EX-0155-EXC (Excavadora)', 'EX-0156-EXC (Excavadora)', 'EX-0157-EXC (Excavadora)', 'EX-0158-EXC (Excavadora)', 'EX-0163-EXC (Excavadora)', 'EX-0171-EXC (Excavadora)', 'EX-0172-EXC (Excavadora)', 'EX-0173-EXC (Excavadora)', 'EX-0174-EXC (Excavadora)', 'EX-0175-EXC (Excavadora)', 'EX-0176-EXC (Excavadora)', 'EX-0177-EXC (Excavadora)', 'EX-0184-EXC (Excavadora)', 'EX-0201-EXC (Excavadora)', 'EX-0202-EXC (Excavadora)', 'FU-0032-EXC (Furgón)', 'GH-0014-EXC (Grúa Horquilla)', 'GH-0015-EXC (Grúa Horquilla)', 'GR-0011-EXC (Grúa)', 'MN-0074-EXC (Motoniveladora)', 'MN-0081-EXC (Motoniveladora)', 'MN-0085-EXC (Motoniveladora)', 'MN-0087-EXC (Motoniveladora)', 'MN-0096-EXC (Motoniveladora)', 'MX-0004-EXC (Manipuladores)', 'MX-0005-EXC (Manipuladores)', 'RC-0002-EXC (Recicladora)', 'RE-0090-EXC (Retroexcavadora)', 'RE-0091-EXC (Retroexcavadora)', 'RE-0092-EXC (Retroexcavadora)', 'RE-0093-EXC (Retroexcavadora)', 'RV-0052-EXC (Rodillo Vibratorio)', 'SR-0043-EXC (Semi remolque)', 'SR-0052-EXC (Semi remolque)', 'TB-0089-EXC (Bulldozer)', 'TB-0102-EXC (Bulldozer)', 'TB-0103-EXC (Bulldozer)', 'TB-0104-EXC (Bulldozer)', 'TB-0105-EXC (Bulldozer)', 'TB-0107-EXC (Bulldozer)', 'TB-0108-EXC (Bulldozer)', 'TB-0109-EXC (Bulldozer)', 'TB-0112-EXC (Bulldozer)', 'TB-0113-EXC (Bulldozer)', 'TB-0114-EXC (Bulldozer)', 'TB-0115-EXC (Bulldozer)', 'TB-0119-EXC (Bulldozer)', 'TB-0120-EXC (Bulldozer)', 'TB-0121-EXC (Bulldozer)', 'TB-0122-EXC (Bulldozer)', 'TB-0125-EXC (Bulldozer)', 'TC-0287-EXC (Tracto Camión)', 'TC-0289-EXC (Tracto Camión)', 'TH-0001-EXC (Manipuladores de Neumáticos)', 'TH-0005-EXC (Manipuladores de Neumáticos)', 'VM-0562-EXC (Camioneta)', 'VM-0563-EXC (Camioneta)', 'VM-0565-EXC (Camioneta)', 'VM-0566-EXC (Camioneta)', 'VM-0567-EXC (Camioneta)', 'VM-0568-EXC (Camioneta)', 'VM-0570-EXC (Camioneta)', 'VM-0571-EXC (Camioneta)', 'VM-0573-EXC (Camioneta)', 'VM-0574-EXC (Camioneta)', 'VM-0588-EXC (Camioneta)', 'VM-0589-EXC (Camioneta)', 'VM-0592-EXC (Camioneta)', 'VM-0593-EXC (Camioneta)', 'VM-0596-EXC (Camioneta)', 'VM-0597-EXC (Camioneta)', 'VM-0600-EXC (Camioneta)', 'VM-0601-EXC (Camioneta)', 'VM-0608-EXC (Camioneta)', 'VM-0613-EXC (Camioneta)', 'VM-0617-EXC (Camioneta)', 'VM-0630-EXC (Camioneta)', 'VM-0668-EXC (Camioneta)', 'VM-0669-EXC (Camioneta)', 'VM-0670-EXC (Camioneta)', 'VM-0671-EXC (Camioneta)', 'VM-0672-EXC (Camioneta)', 'VM-0673-EXC (Camioneta)', 'VM-0675-EXC (Camioneta)', 'VM-0676-EXC (Camioneta)', 'VM-0677-EXC (Camioneta)', 'VM-0678-EXC (Camioneta)', 'VM-0679-EXC (Camioneta)'];
+        const INITIAL_EQUIPMENT_TYPES = [...new Set(INITIAL_EQUIPMENT.map(e => e.includes('(') ? e.split('(')[1].replace(')', '') : 'Otro'))].sort();
+
         const DEFAULT_MAESTRO = {
             "Poza": INITIAL_PONDS,
             "Actividad": ["Pata de gallo", "Zanjas perimetrales", "Zanjas intermedias", "Acordonado", "Remonte", "Extracción", "Perfilado"],
@@ -120,7 +122,8 @@
             { user: 'terreno', pass: 't123', role: 'supervisor', name: 'Pedro Terreno', cargo: 'Supervisor de Faena', telefono: '+56911223344', mail: 'pedro.t@excon.cl' }
         ];
 
-        const SHEETS_URL = "https://script.google.com/macros/s/AKfycbz9sjnZzTzDziL3fKox0H0rzL_iFTGE465BI5LLSd3g-HWiQBbd_9NsHjg-BgScVEvH/exec";
+        const SHEETS_URL = "https://script.google.com/macros/s/AKfycbwcvov5o8YcqeB28lKDrUquUZ76x58uV-B6Kv4MSZKeddvn2XxpsxZ_tG4VdJxcK7q1/exec";
+
 
         // --- HELPERS ---
         const storage = {
@@ -132,30 +135,51 @@
             async list() {
                 try {
                     const res = await fetch(SHEETS_URL);
-                    return await res.json();
-                } catch (e) { console.error(e); return []; }
+                    const data = await res.json();
+                    if (!Array.isArray(data)) return [];
+                    // Normalización defensiva de claves (Script vs Frontend)
+                    return data.map(r => ({
+                        timestamp: r.timestamp || r.Timestamp || r.ID || new Date().getTime(),
+                        fecha: (r.fecha || r.Fecha || "").toString().split('T')[0],
+                        Poza: r.Poza || "",
+                        Actividad: r.Actividad || "",
+                        Porcentaje_Avance: r.Porcentaje_Avance !== undefined ? r.Porcentaje_Avance : (r.Avance !== undefined ? r.Avance : 0),
+                        Equipos: (() => {
+                            if (Array.isArray(r.Equipos)) return r.Equipos;
+                            if (typeof r.Equipos === 'string' && r.Equipos.startsWith('[')) {
+                                try { return JSON.parse(r.Equipos); } catch (e) { return [r.Equipos]; }
+                            }
+                            return r.Equipos ? [r.Equipos] : [];
+                        })(),
+                        userName: r.userName || r.Usuario || "Sistema",
+                        userCargo: r.userCargo || r.Cargo || ""
+                    }));
+                } catch (e) { console.error("API Error (list):", e); return null; }
             },
             async listMaestro() {
                 try {
                     const res = await fetch(`${SHEETS_URL}?type=maestro`);
-                    return await res.json();
-                } catch (e) { console.error(e); return null; }
+                    const data = await res.json();
+                    return (data && typeof data === 'object') ? data : null;
+                } catch (e) { console.error("API Error (listMaestro):", e); return null; }
             },
             async listUsers() {
                 try {
                     const res = await fetch(`${SHEETS_URL}?type=usuarios`);
-                    return await res.json();
-                } catch (e) { console.error(e); return null; }
+                    const data = await res.json();
+                    return Array.isArray(data) ? data : null;
+                } catch (e) { console.error("API Error (listUsers):", e); return null; }
             },
             async send(action, data) {
                 try {
+                    console.log(`Sending action: ${action}`, data);
                     await fetch(SHEETS_URL, {
                         method: 'POST',
                         mode: 'no-cors',
                         body: JSON.stringify({ action, ...data })
                     });
                     return true;
-                } catch (e) { console.error(e); return false; }
+                } catch (e) { console.error("API Error (send):", e); return false; }
             }
         };
 
@@ -580,37 +604,49 @@
             useEffect(() => {
                 const init = async () => {
                     setLoading(true);
+                    console.log("Iniciando sincronización...");
 
-                    // 1. Sincronizar Usuarios
-                    const cloudUsers = await api.listUsers();
-                    if (cloudUsers && cloudUsers.length > 0) {
-                        setUsers(cloudUsers);
-                        storage.set('pozas_users', cloudUsers);
+                    try {
+                        // 1. Sincronizar Usuarios
+                        const cloudUsers = await api.listUsers();
+                        if (cloudUsers && cloudUsers.length > 0) {
+                            console.log("Usuarios sincronizados:", cloudUsers.length);
+                            setUsers(cloudUsers);
+                            storage.set('pozas_users', cloudUsers);
+                        }
+
+                        // 2. Cargar Maestro
+                        const cloudMaestro = await api.listMaestro();
+                        if (cloudMaestro && typeof cloudMaestro === 'object') {
+                            setMaestro(prev => ({
+                                ...prev,
+                                Poza: (cloudMaestro.Poza?.length > 0) ? cloudMaestro.Poza : prev.Poza,
+                                Equipo: (cloudMaestro.Equipo?.length > 0) ? cloudMaestro.Equipo : prev.Equipo,
+                                Actividad: (cloudMaestro.Actividad?.length > 0) ? cloudMaestro.Actividad : prev.Actividad,
+                                TiposEquipos: (cloudMaestro.TiposEquipos?.length > 0) ? cloudMaestro.TiposEquipos : prev.TiposEquipos
+                            }));
+                        }
+
+                        // 3. Cargar Registros de Avance
+                        const cloudRecords = await api.list();
+                        if (cloudRecords === null) {
+                            console.warn("No se pudo conectar con la base de datos cloud. Usando datos locales.");
+                        } else if (cloudRecords && cloudRecords.length > 0) {
+                            console.log("Registros sincronizados:", cloudRecords.length);
+                            setRecords(cloudRecords);
+                            storage.set('pozas_records', cloudRecords);
+                        } else {
+                            console.log("La base de datos cloud está vacía. Manteniendo datos locales o iniciando limpio.");
+                        }
+                    } catch (err) {
+                        console.error("Error durante la sincronización inicial:", err);
                     }
 
-                    // 2. Cargar Maestro (Pozas, Equipos, Actividades)
-                    const cloudMaestro = await api.listMaestro();
-                    if (cloudMaestro) {
-                        setMaestro(prev => ({
-                            ...prev,
-                            Poza: (cloudMaestro.Poza?.length > 0) ? cloudMaestro.Poza : prev.Poza,
-                            Equipo: (cloudMaestro.Equipo?.length > 0) ? cloudMaestro.Equipo : prev.Equipo,
-                            Actividad: (cloudMaestro.Actividad?.length > 0) ? cloudMaestro.Actividad : prev.Actividad,
-                            TiposEquipos: (cloudMaestro.TiposEquipos?.length > 0) ? cloudMaestro.TiposEquipos : prev.TiposEquipos
-                        }));
-                    }
-
-                    // 3. Cargar Registros de Avance
-                    const cloudRecords = await api.list();
-                    // Solo reemplazamos si el cloud tiene datos o si local está vacío, para evitar borrar por error
-                    if (cloudRecords && (cloudRecords.length > 0 || records.length === 0)) {
-                        setRecords(cloudRecords);
-                        storage.set('pozas_records', cloudRecords);
-                    }
                     setLoading(false);
                 };
                 init();
             }, [currentUser, view]);
+
             useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [formData, maestro]);
 
             const handleLogout = () => {
@@ -690,14 +726,13 @@
 
                         <div className="flex items-center gap-4">
                             <nav className="flex bg-white/40 p-1.5 rounded-2xl border border-white/40 shadow-sm">
-                                {currentUser.role !== 'programmer' && (
-                                    <button onClick={() => setView('form')} className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${view === 'form' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500'}`}>Ingreso</button>
-                                )}
+                                <button onClick={() => setView('form')} className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${view === 'form' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500'}`}>Ingreso</button>
                                 <button onClick={() => setView('dashboard')} className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${view === 'dashboard' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500'}`}>Dashboard</button>
                                 {currentUser.role === 'admin' && (
                                     <button onClick={() => setView('admin')} className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${view === 'admin' ? 'bg-white shadow-md text-indigo-600' : 'text-gray-500'}`}>Usuarios</button>
                                 )}
                             </nav>
+
 
                             <div className="flex items-center gap-4 bg-white/40 pl-4 py-1.5 pr-1.5 rounded-2xl border border-white/40">
                                 <div className="text-right hidden sm:block">
