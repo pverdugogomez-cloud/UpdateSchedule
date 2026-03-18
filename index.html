@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -190,12 +190,15 @@
                     return data.map(u => ({
                         ...u,
                         permisos: (() => {
-                            let p = u.permisos || u.permiso;
+                            // Buscar datos JSON en todas las columnas posibles
+                            let p = u.permisos || u.permiso || u.role || u.rol;
+                            
                             if (p && typeof p === 'object') return p;
                             if (typeof p === 'string' && p.trim().startsWith('{')) {
                                 try { return JSON.parse(p); } catch (e) { }
                             }
-                            // Legacy mapping
+
+                            // Mapeo legacy por palabras clave (si no es JSON)
                             const r = (u.role || u.rol || "").toString().toLowerCase().trim();
                             if (r === 'admin') return { ...PRESETS.admin };
                             if (r === 'programmer' || r === 'programador') return { ...PRESETS.programador };
