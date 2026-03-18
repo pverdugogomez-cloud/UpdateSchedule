@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -119,8 +119,8 @@
 
         const PERMISOS_DEFAULT = { ver_ingreso: true, escribir_ingreso: true, ver_dashboard: false, editar_registros: false, borrar_registros: false, gestionar_usuarios: false };
         const PRESETS = {
-            admin:      { ver_ingreso: true, escribir_ingreso: true, ver_dashboard: true, editar_registros: true, borrar_registros: true, gestionar_usuarios: true },
-            programador:{ ver_ingreso: true, escribir_ingreso: true, ver_dashboard: true, editar_registros: true, borrar_registros: true, gestionar_usuarios: false },
+            admin: { ver_ingreso: true, escribir_ingreso: true, ver_dashboard: true, editar_registros: true, borrar_registros: true, gestionar_usuarios: true },
+            programador: { ver_ingreso: true, escribir_ingreso: true, ver_dashboard: true, editar_registros: true, borrar_registros: true, gestionar_usuarios: false },
             supervisor: { ver_ingreso: true, escribir_ingreso: true, ver_dashboard: false, editar_registros: false, borrar_registros: false, gestionar_usuarios: false },
             solo_vista: { ver_ingreso: false, escribir_ingreso: false, ver_dashboard: true, editar_registros: false, borrar_registros: false, gestionar_usuarios: false }
         };
@@ -190,11 +190,16 @@
                     return data.map(u => ({
                         ...u,
                         permisos: (() => {
-                            if (u.permisos && typeof u.permisos === 'object') return u.permisos;
-                            if (typeof u.permisos === 'string') { try { return JSON.parse(u.permisos); } catch(e) {} }
-                            // Legacy: convert old role to permissions
-                            if (u.role === 'admin') return { ...PRESETS.admin };
-                            if (u.role === 'programmer') return { ...PRESETS.programador };
+                            let p = u.permisos || u.permiso;
+                            if (p && typeof p === 'object') return p;
+                            if (typeof p === 'string' && p.trim().startsWith('{')) {
+                                try { return JSON.parse(p); } catch (e) { }
+                            }
+                            // Legacy mapping
+                            const r = (u.role || u.rol || "").toString().toLowerCase().trim();
+                            if (r === 'admin') return { ...PRESETS.admin };
+                            if (r === 'programmer' || r === 'programador') return { ...PRESETS.programador };
+                            if (r === 'visitor' || r === 'solo_vista') return { ...PRESETS.solo_vista };
                             return { ...PRESETS.supervisor };
                         })()
                     }));
@@ -419,7 +424,7 @@
             const [filterEquip, setFilterEquip] = useState("Todas");
 
             const periodRecords = records.filter(r => r.fecha >= filterDate && r.fecha <= filterEndDate);
-            
+
             // Opción B: Agrupar por Poza + Actividad y tomar el registro más reciente
             const grouped = periodRecords.reduce((acc, r) => {
                 const key = `${r.Poza}|${r.Actividad}`;
@@ -587,9 +592,9 @@
                 setUsers(updated);
                 storage.set('pozas_users', updated);
                 await api.send('insert_usuario', { ...userForm, permisos: JSON.stringify(userForm.permisos) });
-                
-                // Retraso para evitar condición de carrera (Race Condition)
-                setTimeout(() => syncRecords(), 2000);
+
+                // Retraso aumentado para mayor seguridad con Google Sheets
+                setTimeout(() => syncRecords(), 3000);
 
                 setUserForm({ user: '', pass: '', name: '', cargo: '', telefono: '', mail: '', permisos: { ...PERMISOS_DEFAULT } });
                 setEditingUser(null);
@@ -762,7 +767,7 @@
                         .sort((a, b) => b.timestamp - a.timestamp)[0];
                     const lastVal = last ? last.Porcentaje_Avance : 0;
                     setPrevProgress(lastVal);
-                    
+
                     // Solo inicializar si no estamos editando un registro existente
                     if (!editingRecord) {
                         setFormData(prev => ({ ...prev, Porcentaje_Avance: lastVal }));
