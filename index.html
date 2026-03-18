@@ -99,9 +99,10 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         // --- CONSTANTS ---
+        const ALL_ACTIVITIES = ["Pata de gallo", "Zanjas perimetrales", "Zanjas intermedias", "Acordonado", "Remonte", "Extracción", "Perfilado", "Auditoría de Datos", "Revisión de Metas", "Ajuste de Calendario"];
         const ROLE_ACTIVITIES = {
-            admin: ["Pata de gallo", "Zanjas perimetrales", "Zanjas intermedias", "Acordonado", "Remonte", "Extracción", "Perfilado"],
-            programmer: ["Pata de gallo", "Zanjas perimetrales", "Zanjas intermedias", "Acordonado", "Remonte", "Extracción", "Perfilado", "Auditoría de Datos", "Revisión de Metas", "Ajuste de Calendario"],
+            admin: ALL_ACTIVITIES,
+            programmer: ALL_ACTIVITIES,
             supervisor: ["Pata de gallo", "Zanjas perimetrales", "Zanjas intermedias", "Acordonado", "Remonte", "Extracción", "Perfilado"]
         };
 
@@ -116,10 +117,29 @@
             "TiposEquipos": INITIAL_EQUIPMENT_TYPES
         };
 
+        const PERMISOS_DEFAULT = { ver_ingreso: true, escribir_ingreso: true, ver_dashboard: false, editar_registros: false, borrar_registros: false, gestionar_usuarios: false };
+        const PRESETS = {
+            admin:      { ver_ingreso: true, escribir_ingreso: true, ver_dashboard: true, editar_registros: true, borrar_registros: true, gestionar_usuarios: true },
+            programador:{ ver_ingreso: true, escribir_ingreso: true, ver_dashboard: true, editar_registros: true, borrar_registros: true, gestionar_usuarios: false },
+            supervisor: { ver_ingreso: true, escribir_ingreso: true, ver_dashboard: false, editar_registros: false, borrar_registros: false, gestionar_usuarios: false },
+            solo_vista: { ver_ingreso: false, escribir_ingreso: false, ver_dashboard: true, editar_registros: false, borrar_registros: false, gestionar_usuarios: false }
+        };
+        const can = (user, permiso) => user?.permisos?.[permiso] === true;
+        const getPresetName = (permisos) => {
+            if (!permisos) return "Personalizado";
+            for (const [key, val] of Object.entries(PRESETS)) {
+                const isMatch = Object.keys(val).every(p => val[p] === permisos[p]);
+                if (isMatch) {
+                    const names = { admin: 'Admin', programador: 'Programador', supervisor: 'Supervisor', solo_vista: 'Solo Vista' };
+                    return names[key] || key;
+                }
+            }
+            return "Personalizado";
+        };
         const INITIAL_USERS = [
-            { user: 'admin', pass: 'admin123', role: 'admin', name: 'Administrador Boss', cargo: 'Gerente de Proyectos', telefono: '+56912345678', mail: 'admin@excon.cl' },
-            { user: 'progra', pass: 'p123', role: 'programmer', name: 'Juan Programador', cargo: 'Programador Senior', telefono: '+56987654321', mail: 'juan.p@excon.cl' },
-            { user: 'terreno', pass: 't123', role: 'supervisor', name: 'Pedro Terreno', cargo: 'Supervisor de Faena', telefono: '+56911223344', mail: 'pedro.t@excon.cl' }
+            { user: 'admin', pass: 'admin123', name: 'Administrador Boss', cargo: 'Gerente de Proyectos', telefono: '+56912345678', mail: 'admin@excon.cl', permisos: PRESETS.admin },
+            { user: 'progra', pass: 'p123', name: 'Juan Programador', cargo: 'Programador Senior', telefono: '+56987654321', mail: 'juan.p@excon.cl', permisos: PRESETS.programador },
+            { user: 'terreno', pass: 't123', name: 'Pedro Terreno', cargo: 'Supervisor de Faena', telefono: '+56911223344', mail: 'pedro.t@excon.cl', permisos: PRESETS.supervisor }
         ];
 
         const SHEETS_URL = "https://script.google.com/macros/s/AKfycbxYfNpTNLZmR2KxGaUn0F-eU2oSAiYHv72YujGLNwCRkgR_S42Xgjn4IRR01USNFSCw/exec";
@@ -134,10 +154,9 @@
         const api = {
             async list() {
                 try {
-                    const res = await fetch(SHEETS_URL);
+                    const res = await fetch(`${SHEETS_URL}?_=${new Date().getTime()}`);
                     const data = await res.json();
                     if (!Array.isArray(data)) return [];
-                    // Normalización defensiva de claves (Script vs Frontend)
                     return data.map(r => ({
                         timestamp: r.timestamp || r.Timestamp || r.ID || new Date().getTime(),
                         fecha: (r.fecha || r.Fecha || "").toString().split('T')[0],
@@ -158,30 +177,45 @@
             },
             async listMaestro() {
                 try {
-                    const res = await fetch(`${SHEETS_URL}?type=maestro`);
+                    const res = await fetch(`${SHEETS_URL}?type=maestro&_=${new Date().getTime()}`);
                     const data = await res.json();
                     return (data && typeof data === 'object') ? data : null;
                 } catch (e) { console.error("API Error (listMaestro):", e); return null; }
             },
             async listUsers() {
                 try {
-                    const res = await fetch(`${SHEETS_URL}?type=usuarios`);
+                    const res = await fetch(`${SHEETS_URL}?type=usuarios&_=${new Date().getTime()}`);
                     const data = await res.json();
-                    return Array.isArray(data) ? data : null;
+                    if (!Array.isArray(data)) return null;
+                    return data.map(u => ({
+                        ...u,
+                        permisos: (() => {
+                            if (u.permisos && typeof u.permisos === 'object') return u.permisos;
+                            if (typeof u.permisos === 'string') { try { return JSON.parse(u.permisos); } catch(e) {} }
+                            // Legacy: convert old role to permissions
+                            if (u.role === 'admin') return { ...PRESETS.admin };
+                            if (u.role === 'programmer') return { ...PRESETS.programador };
+                            return { ...PRESETS.supervisor };
+                        })()
+                    }));
                 } catch (e) { console.error("API Error (listUsers):", e); return null; }
             },
             async send(action, data) {
                 try {
                     console.log(`Sending action: ${action}`, data);
+                    const params = new URLSearchParams();
+                    params.append('data', JSON.stringify({ action, ...data }));
                     await fetch(SHEETS_URL, {
                         method: 'POST',
                         mode: 'no-cors',
-                        body: JSON.stringify({ action, ...data })
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params
                     });
                     return true;
                 } catch (e) { console.error("API Error (send):", e); return false; }
             }
         };
+
 
         // --- COMPONENTS ---
         const GlassCard = ({ children, className = "" }) => (
@@ -375,18 +409,30 @@
             );
         };
 
-        const DashboardView = ({ records, onEdit, onDelete }) => {
+        const DashboardView = ({ records, onEdit, onDelete, currentUser }) => {
+            const canEdit = can(currentUser, 'editar_registros');
+            const canDelete = can(currentUser, 'borrar_registros');
             const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+            const [filterEndDate, setFilterEndDate] = useState(new Date().toISOString().split('T')[0]);
             const [filterPoza, setFilterPoza] = useState("Todas");
             const [filterAct, setFilterAct] = useState("Todas");
             const [filterEquip, setFilterEquip] = useState("Todas");
 
-            const dayRecords = records.filter(r => r.fecha === filterDate);
-            const availablePozas = ["Todas", ...new Set(dayRecords.map(r => r.Poza))].sort();
-            const availableActs = ["Todas", ...new Set(dayRecords.map(r => r.Actividad))].sort();
-            const availableEquips = ["Todas", ...new Set(dayRecords.flatMap(r => r.Equipos))].sort();
+            const periodRecords = records.filter(r => r.fecha >= filterDate && r.fecha <= filterEndDate);
+            
+            // Opción B: Agrupar por Poza + Actividad y tomar el registro más reciente
+            const grouped = periodRecords.reduce((acc, r) => {
+                const key = `${r.Poza}|${r.Actividad}`;
+                if (!acc[key] || r.timestamp > acc[key].timestamp) acc[key] = r;
+                return acc;
+            }, {});
+            const displayRecords = Object.values(grouped);
 
-            const filtered = dayRecords.filter(r => {
+            const availablePozas = ["Todas", ...new Set(displayRecords.map(r => r.Poza))].sort();
+            const availableActs = ["Todas", ...new Set(displayRecords.map(r => r.Actividad))].sort();
+            const availableEquips = ["Todas", ...new Set(displayRecords.flatMap(r => r.Equipos))].sort();
+
+            const filtered = displayRecords.filter(r => {
                 const matchPoza = filterPoza === "Todas" || r.Poza === filterPoza;
                 const matchAct = filterAct === "Todas" || r.Actividad === filterAct;
                 const matchEquip = filterEquip === "Todas" || r.Equipos.includes(filterEquip);
@@ -403,13 +449,9 @@
                                 <h2 className="text-2xl font-black text-gray-900 font-outfit">Dashboard de Programación</h2>
                                 <p className="text-gray-500 text-xs font-bold uppercase tracking-widest leading-none mt-1">Monitoreo de avances diario.</p>
                             </div>
-                            <div className="w-full md:w-64">
-                                <Input label="Fecha del Turno" type="date" value={filterDate} onChange={e => {
-                                    setFilterDate(e.target.value);
-                                    setFilterPoza("Todas");
-                                    setFilterAct("Todas");
-                                    setFilterEquip("Todas");
-                                }} icon="calendar" />
+                            <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                                <Input label="Desde" type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} icon="calendar" />
+                                <Input label="Hasta" type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} icon="calendar" />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
@@ -446,9 +488,9 @@
                                         <td className="px-6 py-4 text-xs font-black text-gray-700 uppercase tracking-tight">{r.Actividad}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 text-sm font-black text-blue-600">{r.Porcentaje_Avance}%</div>
+                                                <div className={`w-10 text-sm font-black ${r.Porcentaje_Avance === 100 ? 'text-green-600' : 'text-blue-600'}`}>{r.Porcentaje_Avance}%</div>
                                                 <div className="flex-1 min-w-[80px] h-1.5 bg-gray-200/50 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-blue-500 rounded-full" style={{ width: `${r.Porcentaje_Avance}%` }}></div>
+                                                    <div className={`h-full ${r.Porcentaje_Avance === 100 ? 'bg-green-500' : 'bg-blue-500'} rounded-full`} style={{ width: `${r.Porcentaje_Avance}%` }}></div>
                                                 </div>
                                             </div>
                                         </td>
@@ -463,8 +505,8 @@
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <button onClick={() => onEdit(r)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all"><i data-lucide="edit-3" className="w-4 h-4"></i></button>
-                                                <button onClick={() => onDelete(r.timestamp)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
+                                                {canEdit && <button onClick={() => onEdit(r)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all"><i data-lucide="edit-3" className="w-4 h-4"></i></button>}
+                                                {canDelete && <button onClick={() => onDelete(r.timestamp)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"><i data-lucide="trash-2" className="w-4 h-4"></i></button>}
                                             </div>
                                         </td>
                                     </tr>
@@ -493,12 +535,12 @@
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <div className="flex justify-between text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                                        <span>Avance del día</span>
-                                        <span className="text-blue-600">{r.Porcentaje_Avance}%</span>
+                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                                        <span className="text-gray-400">Avance del día</span>
+                                        <span className={r.Porcentaje_Avance === 100 ? 'text-green-600' : 'text-blue-600'}>{r.Porcentaje_Avance}%</span>
                                     </div>
                                     <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                                        <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${r.Porcentaje_Avance}%` }}></div>
+                                        <div className={`h-full ${r.Porcentaje_Avance === 100 ? 'bg-green-500' : 'bg-blue-500'} rounded-full transition-all`} style={{ width: `${r.Porcentaje_Avance}%` }}></div>
                                     </div>
                                 </div>
 
@@ -512,8 +554,8 @@
                                         <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">{r.userCargo}</p>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button onClick={() => onEdit(r)} className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><i data-lucide="edit-3" className="w-4 h-4"></i></button>
-                                        <button onClick={() => onDelete(r.timestamp)} className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
+                                        {canEdit && <button onClick={() => onEdit(r)} className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><i data-lucide="edit-3" className="w-4 h-4"></i></button>}
+                                        {canDelete && <button onClick={() => onDelete(r.timestamp)} className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all"><i data-lucide="trash-2" className="w-4 h-4"></i></button>}
                                     </div>
                                 </div>
                             </GlassCard>
@@ -525,9 +567,9 @@
             );
         };
 
-        const AdminPanel = ({ users, setUsers }) => {
+        const AdminPanel = ({ users, setUsers, syncRecords }) => {
             const [editingUser, setEditingUser] = useState(null);
-            const [userForm, setUserForm] = useState({ user: '', pass: '', role: 'supervisor', name: '', cargo: '', telefono: '', mail: '' });
+            const [userForm, setUserForm] = useState({ user: '', pass: '', name: '', cargo: '', telefono: '', mail: '', permisos: { ...PERMISOS_DEFAULT } });
 
             useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [users]);
 
@@ -544,11 +586,12 @@
 
                 setUsers(updated);
                 storage.set('pozas_users', updated);
-                await api.send('insert_usuario', userForm); // Sync to cloud
+                await api.send('insert_usuario', { ...userForm, permisos: JSON.stringify(userForm.permisos) });
+                await syncRecords(); // Sincronización inmediata
 
-                setUserForm({ user: '', pass: '', role: 'supervisor', name: '', cargo: '', telefono: '', mail: '' });
+                setUserForm({ user: '', pass: '', name: '', cargo: '', telefono: '', mail: '', permisos: { ...PERMISOS_DEFAULT } });
                 setEditingUser(null);
-                alert("Usuario guardado en la nube");
+                alert("Usuario sincronizado con éxito.");
             };
 
             const handleDeleteUser = async (u, i) => {
@@ -557,6 +600,7 @@
                 setUsers(filtered);
                 storage.set('pozas_users', filtered);
                 await api.send('delete_usuario', { user: u.user });
+                await syncRecords(); // Sincronización inmediata
             };
 
             const startEdit = (user, index) => {
@@ -575,7 +619,32 @@
                         <form onSubmit={handleSaveUser} className="space-y-1">
                             <div className="grid grid-cols-2 gap-4">
                                 <Input label="Nombre Completo" value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })} />
-                                <Select label="Perfil" options={['admin', 'programmer', 'supervisor']} value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })} />
+                                <div className="mb-4">
+                                    <label className="block text-xs font-black text-gray-500 uppercase mb-1.5 tracking-widest">Preset de Permisos</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {Object.entries({ 'Admin': 'admin', 'Programador': 'programador', 'Supervisor': 'supervisor', 'Solo Vista': 'solo_vista' }).map(([label, key]) => (
+                                            <button key={key} type="button" onClick={() => setUserForm({ ...userForm, permisos: { ...PRESETS[key] } })} className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-600 hover:text-white transition-all">{label}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-xs font-black text-gray-500 uppercase mb-2 tracking-widest">Permisos Individuales</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { key: 'ver_ingreso', label: 'Ver Ingreso' },
+                                        { key: 'escribir_ingreso', label: 'Escribir en Ingreso' },
+                                        { key: 'ver_dashboard', label: 'Ver Dashboard' },
+                                        { key: 'editar_registros', label: 'Editar Registros' },
+                                        { key: 'borrar_registros', label: 'Borrar Registros' },
+                                        { key: 'gestionar_usuarios', label: 'Gestionar Usuarios' }
+                                    ].map(({ key, label }) => (
+                                        <label key={key} className="flex items-center gap-3 p-3 bg-white/60 rounded-xl border border-gray-100 cursor-pointer hover:border-blue-300 transition-all">
+                                            <input type="checkbox" checked={userForm.permisos?.[key] || false} onChange={e => setUserForm({ ...userForm, permisos: { ...(userForm.permisos || PERMISOS_DEFAULT), [key]: e.target.checked } })} className="w-4 h-4 accent-blue-600 cursor-pointer" />
+                                            <span className="text-[10px] font-black uppercase text-gray-600 tracking-wider">{label}</span>
+                                        </label>
+                                    ))}
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <Input label="Cargo" value={userForm.cargo} onChange={e => setUserForm({ ...userForm, cargo: e.target.value })} />
@@ -591,7 +660,7 @@
                                     {editingUser !== null ? "Guardar Cambios" : "Crear Usuario"}
                                 </button>
                                 {editingUser !== null && (
-                                    <button type="button" onClick={() => { setEditingUser(null); setUserForm({ user: '', pass: '', role: 'supervisor', name: '', cargo: '', telefono: '', mail: '' }); }} className="px-6 bg-gray-200 text-gray-600 rounded-2xl font-black uppercase text-xs">Cancelar</button>
+                                    <button type="button" onClick={() => { setEditingUser(null); setUserForm({ user: '', pass: '', name: '', cargo: '', telefono: '', mail: '', permisos: { ...PERMISOS_DEFAULT } }); }} className="px-6 bg-gray-200 text-gray-600 rounded-2xl font-black uppercase text-xs">Cancelar</button>
                                 )}
                             </div>
                         </form>
@@ -610,7 +679,7 @@
                                         </div>
                                         <div>
                                             <p className="font-black text-gray-900 leading-none mb-1 uppercase text-sm">{u.name}</p>
-                                            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{u.cargo} | {u.role}</p>
+                                            <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{u.cargo} | {getPresetName(u.permisos)}</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -631,7 +700,7 @@
         const App = () => {
             const [users, setUsers] = useState(storage.get('pozas_users', INITIAL_USERS));
             const [currentUser, setCurrentUser] = useState(storage.get('pozas_session', null));
-            const [view, setView] = useState(currentUser?.role === 'programmer' ? 'dashboard' : 'form');
+            const [view, setView] = useState(currentUser && !can(currentUser, 'ver_ingreso') && can(currentUser, 'ver_dashboard') ? 'dashboard' : 'form');
             const [maestro, setMaestro] = useState(storage.get('pozas_maestro', DEFAULT_MAESTRO));
             const [records, setRecords] = useState(storage.get('pozas_records', []));
             const [editingRecord, setEditingRecord] = useState(null);
@@ -644,54 +713,60 @@
                 Equipos: [],
                 tipoEquipo: 'Todos'
             });
+            const [prevProgress, setPrevProgress] = useState(0);
 
             const [loading, setLoading] = useState(true);
 
-            useEffect(() => {
-                const init = async () => {
-                    setLoading(true);
-                    console.log("Iniciando sincronización...");
-
-                    try {
-                        // 1. Sincronizar Usuarios
-                        const cloudUsers = await api.listUsers();
-                        if (cloudUsers && cloudUsers.length > 0) {
-                            console.log("Usuarios sincronizados:", cloudUsers.length);
-                            setUsers(cloudUsers);
-                            storage.set('pozas_users', cloudUsers);
-                        }
-
-                        // 2. Cargar Maestro
-                        const cloudMaestro = await api.listMaestro();
-                        if (cloudMaestro && typeof cloudMaestro === 'object') {
-                            setMaestro(prev => ({
-                                ...prev,
-                                Poza: (cloudMaestro.Poza?.length > 0) ? cloudMaestro.Poza : prev.Poza,
-                                Equipo: (cloudMaestro.Equipo?.length > 0) ? cloudMaestro.Equipo : prev.Equipo,
-                                Actividad: (cloudMaestro.Actividad?.length > 0) ? cloudMaestro.Actividad : prev.Actividad,
-                                TiposEquipos: (cloudMaestro.TiposEquipos?.length > 0) ? cloudMaestro.TiposEquipos : prev.TiposEquipos
-                            }));
-                        }
-
-                        // 3. Cargar Registros de Avance
-                        const cloudRecords = await api.list();
-                        if (cloudRecords === null) {
-                            console.warn("No se pudo conectar con la base de datos cloud. Usando datos locales.");
-                        } else if (cloudRecords && cloudRecords.length > 0) {
-                            console.log("Registros sincronizados:", cloudRecords.length);
-                            setRecords(cloudRecords);
-                            storage.set('pozas_records', cloudRecords);
-                        } else {
-                            console.log("La base de datos cloud está vacía. Manteniendo datos locales o iniciando limpio.");
-                        }
-                    } catch (err) {
-                        console.error("Error durante la sincronización inicial:", err);
+            const syncRecords = async (showLoading = false) => {
+                if (showLoading) setLoading(true);
+                try {
+                    // 1. Usuarios
+                    const cloudUsers = await api.listUsers();
+                    if (cloudUsers && cloudUsers.length > 0) {
+                        setUsers(cloudUsers);
+                        storage.set('pozas_users', cloudUsers);
                     }
+                    // 2. Maestro
+                    const cloudMaestro = await api.listMaestro();
+                    if (cloudMaestro && typeof cloudMaestro === 'object') {
+                        setMaestro(prev => ({
+                            ...prev,
+                            Poza: (cloudMaestro.Poza?.length > 0) ? cloudMaestro.Poza : prev.Poza,
+                            Equipo: (cloudMaestro.Equipo?.length > 0) ? cloudMaestro.Equipo : prev.Equipo,
+                            Actividad: (cloudMaestro.Actividad?.length > 0) ? cloudMaestro.Actividad : prev.Actividad,
+                            TiposEquipos: (cloudMaestro.TiposEquipos?.length > 0) ? cloudMaestro.TiposEquipos : prev.TiposEquipos
+                        }));
+                    }
+                    // 3. Registros
+                    const cloudRecords = await api.list();
+                    if (cloudRecords && cloudRecords.length > 0) {
+                        setRecords(cloudRecords);
+                        storage.set('pozas_records', cloudRecords);
+                    }
+                } catch (e) { console.error("Sync Error:", e); }
+                if (showLoading) setLoading(false);
+            };
 
-                    setLoading(false);
-                };
-                init();
+            useEffect(() => {
+                syncRecords(true);
+                const syncInterval = setInterval(() => syncRecords(false), 30000);
+                return () => clearInterval(syncInterval);
             }, [currentUser, view]);
+
+            useEffect(() => {
+                if (formData.Poza && formData.Actividad) {
+                    const last = records
+                        .filter(r => r.Poza === formData.Poza && r.Actividad === formData.Actividad)
+                        .sort((a, b) => b.timestamp - a.timestamp)[0];
+                    const lastVal = last ? last.Porcentaje_Avance : 0;
+                    setPrevProgress(lastVal);
+                    
+                    // Solo inicializar si no estamos editando un registro existente
+                    if (!editingRecord) {
+                        setFormData(prev => ({ ...prev, Porcentaje_Avance: lastVal }));
+                    }
+                }
+            }, [formData.Poza, formData.Actividad]); // Solo disparamos cuando cambia la selección, no con cada sync de records
 
             useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [formData, maestro]);
 
@@ -703,13 +778,14 @@
             const handleLogin = (user) => {
                 setCurrentUser(user);
                 storage.set('pozas_session', user);
-                setView(user.role === 'programmer' ? 'dashboard' : 'form');
+                setView(!can(user, 'ver_ingreso') && can(user, 'ver_dashboard') ? 'dashboard' : 'form');
             };
 
             const createNewPoza = async (name) => {
                 const updatedPonds = [...maestro.Poza, name].sort();
                 setMaestro({ ...maestro, Poza: updatedPonds });
                 await api.send('insert_maestro', { tipo: 'Poza', valor: name });
+                await syncRecords(); // Sincronización inmediata
             };
 
             const deleteRecord = async (ts) => {
@@ -718,6 +794,7 @@
                 setRecords(updated);
                 storage.set('pozas_records', updated);
                 await api.send('delete', { timestamp: ts });
+                await syncRecords(); // Sincronización inmediata
             };
 
             const editRecord = (rec) => {
@@ -751,8 +828,9 @@
 
                 setRecords(updated);
                 storage.set('pozas_records', updated);
+                await syncRecords(); // Sincronización inmediata
                 setFormData({ ...formData, Poza: '', Actividad: '', Porcentaje_Avance: 0, Equipos: [], tipoEquipo: 'Todos' });
-                alert("Operación exitosa!");
+                alert("Operación exitosa y sincronizada.");
             };
 
             if (!currentUser) return <Login onLogin={handleLogin} />;
@@ -772,9 +850,9 @@
 
                         <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
                             <nav className="flex bg-white/40 p-1.5 rounded-2xl border border-white/40 shadow-sm w-full sm:w-auto justify-center">
-                                <button onClick={() => setView('form')} className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${view === 'form' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500'}`}>Ingreso</button>
-                                <button onClick={() => setView('dashboard')} className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${view === 'dashboard' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500'}`}>Dashboard</button>
-                                {currentUser.role === 'admin' && (
+                                {can(currentUser, 'ver_ingreso') && <button onClick={() => setView('form')} className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${view === 'form' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500'}`}>Ingreso</button>}
+                                {can(currentUser, 'ver_dashboard') && <button onClick={() => setView('dashboard')} className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${view === 'dashboard' ? 'bg-white shadow-md text-blue-600' : 'text-gray-500'}`}>Dashboard</button>}
+                                {can(currentUser, 'gestionar_usuarios') && (
                                     <button onClick={() => setView('admin')} className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${view === 'admin' ? 'bg-white shadow-md text-indigo-600' : 'text-gray-500'}`}>Usuarios</button>
                                 )}
                             </nav>
@@ -796,7 +874,7 @@
                         </div>
                     </header>
                     <main>
-                        {view === 'admin' && <AdminPanel users={users} setUsers={setUsers} />}
+                        {view === 'admin' && <AdminPanel users={users} setUsers={setUsers} syncRecords={syncRecords} />}
                         {view === 'profile' && (
                             <div className="max-w-md mx-auto animate-fade-in">
                                 <GlassCard className="!bg-white/95">
@@ -848,13 +926,19 @@
                                         <SearchableSelect label="2. Localización (Poza)" options={maestro["Poza"]} value={formData.Poza} onChange={val => setFormData({ ...formData, Poza: val })} icon="map-pin" placeholder="Buscar por ID (Ej: 1-A)..." allowCreate={true} onCreate={createNewPoza} />
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                                            <SearchableSelect label="3. Actividad en Curso" options={ROLE_ACTIVITIES[currentUser.role] || []} value={formData.Actividad} onChange={val => setFormData({ ...formData, Actividad: val })} icon="activity" placeholder="Seleccionar labor..." />
+                                            <SearchableSelect label="3. Actividad en Curso" options={maestro.Actividad && maestro.Actividad.length > 0 ? maestro.Actividad : ALL_ACTIVITIES} value={formData.Actividad} onChange={val => setFormData({ ...formData, Actividad: val })} icon="activity" placeholder="Seleccionar labor..." />
                                             <div className="mb-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                                                 <div className="flex justify-between items-center mb-3">
                                                     <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Ejecución</span>
-                                                    <span className="text-xl font-black text-blue-600">{formData.Porcentaje_Avance}%</span>
+                                                    <span className={`text-xl font-black ${formData.Porcentaje_Avance == 100 ? 'text-green-600' : 'text-blue-600'}`}>{formData.Porcentaje_Avance}%</span>
                                                 </div>
-                                                <input type="range" min="0" max="100" value={formData.Porcentaje_Avance} onChange={e => setFormData({ ...formData, Porcentaje_Avance: e.target.value })} className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                                                <input type="range" min="0" max="100" value={formData.Porcentaje_Avance} onChange={e => setFormData({ ...formData, Porcentaje_Avance: parseInt(e.target.value) })} className={`w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer ${formData.Porcentaje_Avance == 100 ? 'accent-green-600' : 'accent-blue-600'}`} />
+                                                {formData.Porcentaje_Avance < prevProgress && (
+                                                    <p className="text-[9px] font-black text-red-500 mt-3 flex items-center gap-1.5 animate-pulse uppercase tracking-tighter">
+                                                        <i data-lucide="alert-triangle" className="w-3 h-3"></i>
+                                                        Avance menor al anterior registrado ({prevProgress}%)
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
 
@@ -896,12 +980,12 @@
                                 </div>
                             </div>
                         )}
-                        {view === 'dashboard' && <DashboardView records={records} onEdit={editRecord} onDelete={deleteRecord} />}
+                        {view === 'dashboard' && <DashboardView records={records} onEdit={editRecord} onDelete={deleteRecord} currentUser={currentUser} />}
                     </main>
 
                     <footer className="mt-20 py-10 border-t border-white/20 text-center">
                         <p className="text-gray-900 text-[9px] font-black tracking-[0.4em] uppercase opacity-30">
-                            © 2026 Constructora Excon S.A | Digital Twin Platform | v2.4.0
+                            © 2026 Constructora Excon S.A | Digital Twin Platform | v2.5.0
                         </p>
                     </footer>
                 </div>
