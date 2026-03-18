@@ -587,7 +587,9 @@
                 setUsers(updated);
                 storage.set('pozas_users', updated);
                 await api.send('insert_usuario', { ...userForm, permisos: JSON.stringify(userForm.permisos) });
-                await syncRecords(); // Sincronización inmediata
+                
+                // Retraso para evitar condición de carrera (Race Condition)
+                setTimeout(() => syncRecords(), 2000);
 
                 setUserForm({ user: '', pass: '', name: '', cargo: '', telefono: '', mail: '', permisos: { ...PERMISOS_DEFAULT } });
                 setEditingUser(null);
@@ -600,7 +602,7 @@
                 setUsers(filtered);
                 storage.set('pozas_users', filtered);
                 await api.send('delete_usuario', { user: u.user });
-                await syncRecords(); // Sincronización inmediata
+                setTimeout(() => syncRecords(), 2000); // Sincronización con retraso
             };
 
             const startEdit = (user, index) => {
@@ -785,7 +787,7 @@
                 const updatedPonds = [...maestro.Poza, name].sort();
                 setMaestro({ ...maestro, Poza: updatedPonds });
                 await api.send('insert_maestro', { tipo: 'Poza', valor: name });
-                await syncRecords(); // Sincronización inmediata
+                setTimeout(() => syncRecords(), 2000);
             };
 
             const deleteRecord = async (ts) => {
@@ -794,7 +796,7 @@
                 setRecords(updated);
                 storage.set('pozas_records', updated);
                 await api.send('delete', { timestamp: ts });
-                await syncRecords(); // Sincronización inmediata
+                setTimeout(() => syncRecords(), 2000);
             };
 
             const editRecord = (rec) => {
@@ -828,7 +830,7 @@
 
                 setRecords(updated);
                 storage.set('pozas_records', updated);
-                await syncRecords(); // Sincronización inmediata
+                setTimeout(() => syncRecords(), 2000); // Sincronización con delay
                 setFormData({ ...formData, Poza: '', Actividad: '', Porcentaje_Avance: 0, Equipos: [], tipoEquipo: 'Todos' });
                 alert("Operación exitosa y sincronizada.");
             };
