@@ -190,15 +190,19 @@
                     return data.map(u => ({
                         ...u,
                         permisos: (() => {
-                            // Buscar datos JSON en todas las columnas posibles
-                            let p = u.permisos || u.permiso || u.role || u.rol;
-                            
-                            if (p && typeof p === 'object') return p;
-                            if (typeof p === 'string' && p.trim().startsWith('{')) {
-                                try { return JSON.parse(p); } catch (e) { }
+                            // Buscar datos JSON en todas las fuentes posibles
+                            const candidates = [u.permisos, u.permiso, u.role, u.rol];
+                            for (const p of candidates) {
+                                if (p && typeof p === 'object') return p;
+                                if (typeof p === 'string' && p.trim().startsWith('{')) {
+                                    try { 
+                                        const parsed = JSON.parse(p);
+                                        if (parsed && typeof parsed === 'object') return parsed;
+                                    } catch (e) { }
+                                }
                             }
-
-                            // Mapeo legacy por palabras clave (si no es JSON)
+                            
+                            // Si no hay JSON, mapear roles antiguos por palabras clave
                             const r = (u.role || u.rol || "").toString().toLowerCase().trim();
                             if (r === 'admin') return { ...PRESETS.admin };
                             if (r === 'programmer' || r === 'programador') return { ...PRESETS.programador };
