@@ -64,7 +64,7 @@
         }
 
         .login-bg {
-            background: url('https://images.unsplash.com/photo-1541888946425-d81bb19480c5?auto=format&fit=crop&q=80&w=2070') no-repeat center center;
+            background: url('https://images.unsplash.com/photo-1541888946425-d81bb1946425-d81bb19480c5?auto=format&fit=crop&q=80&w=2070') no-repeat center center;
             background-size: cover;
         }
 
@@ -75,6 +75,13 @@
         .custom-range::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 10px;
+        }
+        body:hover .custom-range::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); }
+            
+        @media print {
+            body *:not(.print-content):not(.print-content *) { display: none !important; }
+            .print-content { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; height: auto !important; margin: 0 !important; padding: 0 !important; border: none !important; box-shadow: none !important; display: block !important; visibility: visible !important; -webkit-print-color-adjust: exact; }
+            .no-print { display: none !important; }
         }
 
         .searchable-results {
@@ -386,6 +393,102 @@
 
         // --- VIEWS ---
 
+        const HistoryModal = ({ poza, records, onClose }) => {
+            if (!poza) return null;
+            const history = records
+                .filter(r => r.Poza === poza)
+                .sort((a,b) => b.timestamp - a.timestamp);
+            
+            const firstDate = history.length > 0 ? history[history.length-1].fecha : '-';
+            const lastDate = history.length > 0 ? history[0].fecha : '-';
+            const lastProgress = history.length > 0 ? history[0].Porcentaje_Avance : 0;
+
+            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [poza]);
+
+            return (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 print:p-0 print:bg-white">
+                    <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl print:shadow-none print:max-h-full print-content">
+                        <div className="p-6 border-b flex justify-between items-center print:border-b-2 bg-white">
+                            <div>
+                                <h2 className="text-2xl font-black text-blue-900 font-outfit">Reporte Histórico: {poza}</h2>
+                                <p className="text-sm text-gray-500 font-bold uppercase tracking-widest">Trazabilidad de Control de Avance</p>
+                            </div>
+                            <div className="flex gap-2 no-print">
+                                <button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2">
+                                    <i data-lucide="printer" className="w-4 h-4"></i> Imprimir PDF
+                                </button>
+                                <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-xs font-bold transition-all">Cerrar</button>
+                            </div>
+                        </div>
+                        
+                        <div className="p-8 overflow-y-auto flex-1 bg-gray-50/50 print:bg-white">
+                            <div className="grid grid-cols-3 gap-6 mb-8">
+                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-blue-50">
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Inicio de Obra</p>
+                                    <p className="text-xl font-black text-gray-800">{firstDate}</p>
+                                </div>
+                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-blue-50">
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Último Avance</p>
+                                    <p className="text-xl font-black text-gray-800">{lastDate}</p>
+                                </div>
+                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-blue-50">
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Avance Actual</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className={`text-xl font-black ${lastProgress === 100 ? 'text-green-600' : 'text-blue-600'}`}>{lastProgress}%</p>
+                                        {lastProgress === 100 && <i data-lucide="check-circle-2" className="text-green-500 w-5 h-5"></i>}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-blue-50/50 text-blue-900 border-b border-blue-100">
+                                            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Fecha</th>
+                                            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Actividad</th>
+                                            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Avance %</th>
+                                            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Equipos</th>
+                                            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest">Responsable</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {history.map((r, i) => (
+                                            <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-all">
+                                                <td className="px-6 py-4 text-xs font-bold text-gray-700">{r.fecha}</td>
+                                                <td className="px-6 py-4 text-xs text-gray-600">{r.Actividad}</td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-black text-gray-800 w-8">{r.Porcentaje_Avance}%</span>
+                                                        <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                            <div className={`h-full ${r.Porcentaje_Avance === 100 ? 'bg-green-500' : 'bg-blue-500'}`} style={{ width: `${r.Porcentaje_Avance}%` }}></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {r.Equipos.map((eq, j) => (
+                                                            <span key={j} className="text-[8px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold">{eq}</span>
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <p className="text-[10px] font-bold text-gray-700 leading-none">{r.userName}</p>
+                                                    <p className="text-[8px] text-gray-400 uppercase">{r.userCargo}</p>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div className="mt-8 text-center hidden print:block border-t pt-4">
+                                <p className="text-[9px] text-gray-400 italic">Reporte generado automáticamente por la Plataforma Excon S.A.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const Login = ({ onLogin }) => {
             const [user, setUser] = useState("");
             const [pass, setPass] = useState("");
@@ -421,7 +524,7 @@
             );
         };
 
-        const DashboardView = ({ records, onEdit, onDelete, currentUser }) => {
+        const DashboardView = ({ records, onEdit, onDelete, currentUser, setSelectedPozaHist }) => {
             const canEdit = can(currentUser, 'editar_registros');
             const canDelete = can(currentUser, 'borrar_registros');
             const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
@@ -429,6 +532,20 @@
             const [filterPoza, setFilterPoza] = useState("Todas");
             const [filterAct, setFilterAct] = useState("Todas");
             const [filterEquip, setFilterEquip] = useState("Todas");
+            
+            const setQuickRange = (range) => {
+                const today = new Date();
+                const end = today.toISOString().split('T')[0];
+                let start = end;
+                if (range === '7d') {
+                    const d = new Date(); d.setDate(today.getDate() - 7);
+                    start = d.toISOString().split('T')[0];
+                } else if (range === 'month') {
+                    start = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                }
+                setFilterDate(start);
+                setFilterEndDate(end);
+            };
 
             const periodRecords = records.filter(r => r.fecha >= filterDate && r.fecha <= filterEndDate);
 
@@ -461,9 +578,21 @@
                                 <h2 className="text-2xl font-black text-gray-900 font-outfit">Dashboard de Programación</h2>
                                 <p className="text-gray-500 text-xs font-bold uppercase tracking-widest leading-none mt-1">Monitoreo de avances diario.</p>
                             </div>
-                            <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-                                <Input label="Desde" type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} icon="calendar" />
-                                <Input label="Hasta" type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} icon="calendar" />
+                            <div className="flex flex-wrap gap-4 items-end mb-6">
+                        <div className="flex-1 min-w-[300px] flex gap-2 items-end">
+                            <div className="flex-1">
+                                <label className="block text-[10px] text-gray-500 font-black mb-1 uppercase tracking-wider">Desde / Hasta</label>
+                                <div className="flex gap-2">
+                                    <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="w-full bg-gray-100 border border-blue-100 rounded-xl px-3 py-2 text-blue-900 text-sm font-bold ring-offset-2 focus:ring-2 focus:ring-blue-500" />
+                                    <input type="date" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} className="w-full bg-gray-100 border border-blue-100 rounded-xl px-3 py-2 text-blue-900 text-sm font-bold ring-offset-2 focus:ring-2 focus:ring-blue-500" />
+                                </div>
+                            </div>
+                            <div className="flex gap-1">
+                                <button onClick={() => setQuickRange('today')} className="bg-blue-600 hover:bg-blue-700 text-[10px] text-white font-black px-4 py-2.5 rounded-xl shadow-md transition-all active:scale-95 uppercase">Hoy</button>
+                                <button onClick={() => setQuickRange('7d')} className="bg-blue-600 hover:bg-blue-700 text-[10px] text-white font-black px-4 py-2.5 rounded-xl shadow-md transition-all active:scale-95 uppercase">7 Días</button>
+                                <button onClick={() => setQuickRange('month')} className="bg-blue-600 hover:bg-blue-700 text-[10px] text-white font-black px-4 py-2.5 rounded-xl shadow-md transition-all active:scale-95 uppercase">Mes</button>
+                            </div>
+                        </div>
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-100">
@@ -517,6 +646,7 @@
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
+                                                <button onClick={() => setSelectedPozaHist(r.Poza)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all"><i data-lucide="file-text" className="w-4 h-4"></i></button>
                                                 {canEdit && <button onClick={() => onEdit(r)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all"><i data-lucide="edit-3" className="w-4 h-4"></i></button>}
                                                 {canDelete && <button onClick={() => onDelete(r.timestamp)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"><i data-lucide="trash-2" className="w-4 h-4"></i></button>}
                                             </div>
@@ -718,6 +848,7 @@
             const [maestro, setMaestro] = useState(storage.get('pozas_maestro', DEFAULT_MAESTRO));
             const [records, setRecords] = useState(storage.get('pozas_records', []));
             const [editingRecord, setEditingRecord] = useState(null);
+            const [selectedPozaHist, setSelectedPozaHist] = useState(null);
 
             const [formData, setFormData] = useState({
                 fecha: new Date().toISOString().split('T')[0],
@@ -851,6 +982,13 @@
 
             return (
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-20">
+                    {selectedPozaHist && (
+                        <HistoryModal 
+                            poza={selectedPozaHist} 
+                            records={records} 
+                            onClose={() => setSelectedPozaHist(null)} 
+                        />
+                    )}
                     <header className="flex flex-col lg:flex-row justify-between items-center mb-8 lg:mb-10 gap-6">
                         <div className="flex items-center gap-4 cursor-pointer self-start lg:self-center" onClick={() => setView(currentUser.role === 'programmer' ? 'dashboard' : 'form')}>
                             <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-xl border border-white/20 shrink-0">
@@ -994,7 +1132,7 @@
                                 </div>
                             </div>
                         )}
-                        {view === 'dashboard' && <DashboardView records={records} onEdit={editRecord} onDelete={deleteRecord} currentUser={currentUser} />}
+                        {view === 'dashboard' && <DashboardView records={records} onEdit={editRecord} onDelete={deleteRecord} currentUser={currentUser} setSelectedPozaHist={setSelectedPozaHist} />}
                     </main>
 
                     <footer className="mt-20 py-10 border-t border-white/20 text-center">
