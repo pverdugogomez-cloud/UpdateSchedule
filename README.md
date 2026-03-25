@@ -5,9 +5,10 @@ Este es un sistema de control de avances para faenas de construcción, diseñado
 ## Características
 
 - **Carga de Avances**: Interfaz táctil y amigable para supervisores en terreno.
-- **Dashboard**: Panel de control para programadores con filtros por fecha, poza y actividad.
+- **Dashboard**: Panel de control profesional con filtros por fecha, área y actividad.
 - **Base de Datos en la Nube**: Integración total con Google Sheets para sincronización multiusuario.
-- **Gestión de Personal**: Control de acceso por roles (Administrador, Programador, Supervisor).
+- **Gestión de Usuarios**: Control de acceso granular (Administrador, Programador, Supervisor).
+- **Gestión de Proyectos**: Aislamiento total de datos por obra/contrato.
 
 ## Configuración de Base de Datos
 
