@@ -335,8 +335,8 @@
 
 
         // --- COMPONENTS ---
-        const GlassCard = ({ children, className = "" }) => (
-            <div className={`glass-card rounded-3xl p-8 ${className} animate-fade-in`}>
+        const GlassCard = ({ children, className = "", ...props }) => (
+            <div className={`glass-card rounded-3xl p-8 ${className} animate-fade-in`} {...props}>
                 {children}
             </div>
         );
