@@ -237,42 +237,49 @@
             set: (key, val) => localStorage.setItem(key, JSON.stringify(val))
         };
 
+        const normalize = (obj) => {
+            if (!obj || typeof obj !== 'object') return obj;
+            return Object.keys(obj).reduce((acc, key) => {
+                acc[key.toLowerCase().trim()] = obj[key];
+                return acc;
+            }, {});
+        };
         const api = {
             async list() {
                 try {
                     const res = await fetch(`${SHEETS_URL}?_=${new Date().getTime()}`);
                     const data = await res.json();
-                    console.log("DEBUG: Raw data from API (first 2 records):", data.slice(0, 2));
                     if (!Array.isArray(data)) return [];
-                    const mapped = data.map(r => ({
-                        timestamp: r.timestamp || r.Timestamp || r.ID || new Date().getTime(),
-                        fecha: (r.fecha || r.Fecha || "").toString().split('T')[0],
-                        Poza: r.poza || r.Poza || r.Area || r.AREA || "",
-                        Actividad: r.actividad || r.Actividad || "",
-                        Porcentaje_Avance: r.porcentaje_avance !== undefined ? r.porcentaje_avance : (r.Porcentaje_Avance !== undefined ? r.Porcentaje_Avance : 0),
-                        Equipos: (() => {
-                            const e = r.equipos || r.Equipos;
-                            if (Array.isArray(e)) return e;
-                            if (typeof e === 'string' && e.startsWith('[')) {
-                                try { return JSON.parse(e); } catch (err) { return [e]; }
-                            }
-                            return e ? [e] : [];
-                        })(),
-                        userName: r.username || r.userName || r.Usuario || "Sistema",
-                        userCargo: r.usercargo || r.userCargo || r.Cargo || "",
-                        Observaciones: r.observaciones || r.Observaciones || r.OBSERVACIONES || r.comentarios || r.Comentarios || "",
-                        proyecto_id: r.proyecto_id || r.Proyecto_ID || "",
-                        EquiposDetalle: (() => {
-                            const ed = r.equiposdetalle || r.EquiposDetalle;
-                            if (Array.isArray(ed)) return ed;
-                            if (typeof ed === 'string' && ed.startsWith('[')) {
-                                try { return JSON.parse(ed); } catch (err) { return []; }
-                            }
-                            return ed || [];
-                        })()
-                    }));
-                    console.log("DEBUG: Mapped records (first 2):", mapped.slice(0, 2));
-                    return mapped;
+                    return data.map(raw => {
+                        const r = normalize(raw);
+                        return {
+                            timestamp: r.timestamp || r.id || new Date().getTime(),
+                            fecha: (r.fecha || "").toString().split('T')[0],
+                            Poza: r.poza || r.area || "",
+                            Actividad: r.actividad || "",
+                            Porcentaje_Avance: (r.porcentaje_avance !== undefined) ? r.porcentaje_avance : 0,
+                            Equipos: (() => {
+                                const e = r.equipos;
+                                if (Array.isArray(e)) return e;
+                                if (typeof e === 'string' && e.startsWith('[')) {
+                                    try { return JSON.parse(e); } catch (err) { return [e]; }
+                                }
+                                return e ? [e] : [];
+                            })(),
+                            userName: r.username || "Sistema",
+                            userCargo: r.usercargo || "",
+                            Observaciones: r.observaciones || r.comentarios || "",
+                            proyecto_id: r.proyecto_id || "",
+                            EquiposDetalle: (() => {
+                                const ed = r.equiposdetalle;
+                                if (Array.isArray(ed)) return ed;
+                                if (typeof ed === 'string' && ed.startsWith('[')) {
+                                    try { return JSON.parse(ed); } catch (err) { return []; }
+                                }
+                                return ed || [];
+                            })()
+                        };
+                    });
                 } catch (e) { console.error("API Error (list):", e); return null; }
             },
             async listMaestro() {
@@ -280,12 +287,16 @@
                     const res = await fetch(`${SHEETS_URL}?type=maestro&_=${new Date().getTime()}`);
                     const data = await res.json();
                     if (!data || typeof data !== 'object') return null;
-                    // Normalizar a las llaves que el App espera (Capitalizadas)
+                    const normalized = {};
+                    Object.keys(data).forEach(k => {
+                        const capitalized = k.charAt(0).toUpperCase() + k.slice(1);
+                        normalized[capitalized] = data[k];
+                    });
                     return {
-                        Poza: data.poza || data.Poza || [],
-                        Equipo: data.equipo || data.Equipo || [],
-                        Actividad: data.actividad || data.Actividad || [],
-                        TiposEquipos: data.tiposequipos || data.TiposEquipos || []
+                        Poza: normalized.Poza || [],
+                        Equipo: normalized.Equipo || [],
+                        Actividad: normalized.Actividad || [],
+                        TiposEquipos: normalized.Tiposequipos || normalized.TiposEquipos || []
                     };
                 } catch (e) { console.error("API Error (listMaestro):", e); return null; }
             },
@@ -294,12 +305,15 @@
                     const res = await fetch(`${SHEETS_URL}?type=metas&_=${new Date().getTime()}`);
                     const data = await res.json();
                     if (!Array.isArray(data)) return [];
-                    return data.map(m => ({
-                        Poza: m.poza || m.Poza || "",
-                        Actividad: m.actividad || m.Actividad || "",
-                        TipoEquipo: m.tipoequipo || m.TipoEquipo || "",
-                        Meta: m.meta !== undefined ? m.meta : (m.Meta !== undefined ? m.Meta : 0)
-                    }));
+                    return data.map(raw => {
+                        const m = normalize(raw);
+                        return {
+                            Poza: m.poza || "",
+                            Actividad: m.actividad || "",
+                            TipoEquipo: m.tipoequipo || "",
+                            Meta: m.meta !== undefined ? m.meta : 0
+                        };
+                    });
                 } catch (e) { console.error("API Error (listMetas):", e); return []; }
             },
             async listUsers() {
@@ -307,22 +321,31 @@
                     const res = await fetch(`${SHEETS_URL}?type=usuarios&_=${new Date().getTime()}`);
                     const data = await res.json();
                     if (!Array.isArray(data)) return null;
-                    return data.map(u => {
+                    return data.map(raw => {
+                        const u = normalize(raw);
+                        
+                        // Extracción ultra-agresiva de permisos
                         const permissions = (() => {
-                            const candidates = [u.permisos, u.permiso, u.role, u.rol];
-                            for (const p of candidates) {
-                                if (p && typeof p === 'object') return p;
-                                if (typeof p === 'string' && p.trim().startsWith('{')) {
-                                    try {
-                                        const parsed = JSON.parse(p);
-                                        if (parsed && typeof parsed === 'object') return parsed;
-                                    } catch (e) { }
-                                }
+                            // 1. Buscar en todas las variantes de nombres de columna
+                            const p = u.permisos || u.permiso || u.role || u.rol || u.roles || u.permissions || u.permis;
+                            
+                            // 2. Si ya es un objeto (parseado por el backend), devolverlo
+                            if (p && typeof p === 'object' && p.ver_ingreso !== undefined) return p;
+                            
+                            // 3. Si es un string JSON, parsearlo
+                            if (typeof p === 'string' && p.trim().startsWith('{')) {
+                                try {
+                                    const parsed = JSON.parse(p);
+                                    if (parsed && typeof parsed === 'object') return parsed;
+                                } catch (e) {}
                             }
-                            const r = (u.role || u.rol || "").toString().toLowerCase().trim();
-                            if (r === 'admin') return { ...PRESETS.admin };
-                            if (r === 'programmer' || r === 'programador') return { ...PRESETS.programador };
-                            if (r === 'visitor' || r === 'solo_vista') return { ...PRESETS.solo_vista };
+                            
+                            // 4. Fallback por palabras clave (si el Excel tiene texto como "Administrador")
+                            const rawString = (p || u.role || u.rol || "").toString().toLowerCase();
+                            if (rawString.includes('admin')) return { ...PRESETS.admin };
+                            if (rawString.includes('prog')) return { ...PRESETS.programador };
+                            if (rawString.includes('visit') || rawString.includes('vista')) return { ...PRESETS.solo_vista };
+                            
                             return { ...PRESETS.supervisor };
                         })();
 
