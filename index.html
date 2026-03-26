@@ -295,7 +295,6 @@
                     return data.map(u => ({
                         ...u,
                         permisos: (() => {
-                            // Buscar datos JSON en todas las fuentes posibles
                             const candidates = [u.permisos, u.permiso, u.role, u.rol];
                             for (const p of candidates) {
                                 if (p && typeof p === 'object') return p;
@@ -1010,14 +1009,14 @@
 
                 setUsers(updated);
                 storage.set('pozas_users', updated);
-                await api.send('insert_usuario', { ...userForm, permisos: JSON.stringify(userForm.permisos) });
+                await api.send('insert_usuario', { ...userForm });
 
                 // Retraso aumentado para mayor seguridad con Google Sheets
                 setTimeout(() => syncRecords(), 3000);
 
                 setUserForm({ user: '', pass: '', name: '', cargo: '', telefono: '', mail: '', permisos: { ...PERMISOS_DEFAULT } });
                 setEditingUser(null);
-                alert("Usuario sincronizado con éxito.");
+                alert("Usuario sincronizado con éxito. Los cambios pueden tardar unos segundos en reflejarse.");
             };
 
             const handleDeleteUser = async (u, i) => {
